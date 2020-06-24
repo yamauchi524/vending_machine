@@ -4,35 +4,41 @@
 # coding:utf-8
 
 #Flask,テンプレート,リクエスト読み込み
-from flask import Flask, render_template, request
+import os
+from flask import Flask, render_template, request, redirect, url_for
+from werkzeug.utils import secure_filename
 
+#DBを使う
 import mysql.connector
 from mysql.connector import errorcode
 
 #時間の取得
-import datetime
-#更新日時の取得
-#import os
+#import datetime
 
 #画像処理
-import io
 from PIL import Image
+
+#match関数の利用
+#入力した数字がマッチしているかチェック
+import re
 
 #自分をappという名称でインスタンス化
 app = Flask(__name__)
 
- #データベースの情報
+#データベースの情報
 host = 'localhost' # データベースのホスト名又はIPアドレス
 username = 'root'  # MySQLのユーザ名
 passwd   = 'Hito05hito'    # MySQLのパスワード
 dbname   = 'my_database'    # データベース名
 
-#商品管理ページ（初期画面、常にテーブルが表示されるように）
-@app.route('/management')
-def management_send():
+#画像ファイルのpathを指定
+UPLOAD_FOLDER = '/Users/hyamauchi/Desktop/codecamp_work/vendingmachine/drink_image/'
+ALLOWED_EXTENSIONS = {'png','jpeg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-    #日時の取得
-    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#商品管理ページ（初期画面）
+@app.route('/management', methods=['GET'])
+def management():
 
     drink = []
     try:
@@ -41,8 +47,8 @@ def management_send():
         query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
-        for (id, image_binary, name, price, stock, status, date) in cursor:
-            item = {"drink_id":id, "image":image_binary, "name":name, "price":price, "stock":stock, "status":status, "date":date}
+        for (image, name, price, stock, status) in cursor:
+            item = {"image":image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
 
     except mysql.connector.Error as err:
@@ -56,36 +62,37 @@ def management_send():
         cnx.close()
     return render_template('management.html', drink=drink)
 
-#商品管理ページ（追加・更新など、変更後の画面）
+#商品管理ページ（追加・更新など、変更後）
 @app.route('/management',methods=['POST'])
 def management_recieve():
 
-    #初期値
-    id = request.form.get("drink_id","")
+    #変数の定義
+    drink_id = request.form.get("drink_id","")
     name = request.form.get("new_name","")
     price = request.form.get("new_price","")
     stock = request.form.get("new_stock","")
     status = request.form.get("new_status","")
 
-    #画像読み込み
-    image = request.form.get("new_img","")
+    #画像の取得
+    #アップロードされていない場合はNone
+    image = request.files.get("new_img","")
+
+    # secure_filenameを使ってLinuxでも保存可能なファイル名に変換
+    filename = secure_filename(image.filename)
+    image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
     #sqlの状態
     #insert:追加、update:在庫の更新、change:公開・非公開の変更
-    #sql_kind = request.form.get("sql_kind","")
+    sql_kind = request.form.get("sql_kind","")
 
-    #imageをバイナリデータに変換
-    image_in = Image.open('image/' + image) #画像があるフォルダのパス
-    image_bin = io.BytesIO(image_in)
-    image_binary = image_bin.getvalue()
+    #完了メッセージ
+    #success_message = ""
 
-    #日時の取得
-    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    #入力の判定（エラー文を表示する）
-    result = ""
-
-    cnx = None
+    #エラーメッセージ
+    error_message = ""
+    #error_message_price = ""
+    #error_message_stock = ""
+    #error_message_image = ""
 
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
@@ -94,34 +101,44 @@ def management_recieve():
         #常にテーブルは表示
         query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
-        if image == "" or name == "" or price == "" or stock == "" or status == "":
+        if image == None or name == "" or price == "" or stock == "" or status == "":
             cursor.execute(query)
-            result = "全ての項目を入力してください。"  
+            error_message = "全ての項目を入力してください。" 
         
         else:
-            #テーブルに追加する
+            #sql_kindがinsertの時
+            #sql_kindがupdateの時
+            #sql_kindがの時
+            # if文
+            # priceの話
+            # stockの話
+            # file読み込み
             try:
-                sql_drink = "INSERT INTO drink (drink_id, name, image, price, created_date, update_date, status) VALUES({}, '{}', {}, {},'{}','{}',{})".format(id, name, image_binary, price, date, date, status)
+                sql_drink = "INSERT INTO drink (name, image, price, status) VALUES('{}', '{}', {}, {})".format(name, image, price, status)
                 cursor.execute(sql_drink)
-                cnx.commit()
-                #order_id = cursor.lastrowid # insertした値を取得できます。
+                drink_id = cursor.lastrowid # insertした値を取得できます。
                 
-                sql_stock = "INSERT INTO stock (drink_id, stock, created_date, update_date) VALUES({}, {}, '{}', '{}')".format(id, stock, date, date)
+                sql_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
                 cursor.execute(sql_stock)
                 cnx.commit()
 
             except mysql.connector.Error as err:
                 print(err)
-                result = "「JPEG」または「PNG」形式の画像をアップロードしてください。"
 
             cursor.execute(query)
 
             #sql_kind == 'insert':
 
         drink = []
-        for (id, image_binary, name, price, stock, status, date) in cursor:
-            item = {"drink_id":id, "img":image_binary, "name":name, "price":price, "stock":stock, "status":status, "date":date}
+        for (image, name, price, stock, status) in cursor:
+            item = {"image":image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
+
+        params = {
+            "drink" : drink
+            #message
+
+        }
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -133,7 +150,7 @@ def management_recieve():
 
     else:
         cnx.close()
-    return render_template('management.html', drink=drink, result=result)
+    return render_template('management.html', **params)
 
 #購入画面
 #@app.route('/purchase',methods=['GET','POST'])
