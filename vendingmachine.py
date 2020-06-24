@@ -1,5 +1,5 @@
 #実習課題2
-#vending_machine
+#自動販売機
 
 # coding:utf-8
 
@@ -12,9 +12,10 @@ from mysql.connector import errorcode
 #時間の取得
 import datetime
 #更新日時の取得
-import os
+#import os
 
 #画像処理
+import io
 from PIL import Image
 
 #自分をappという名称でインスタンス化
@@ -27,18 +28,18 @@ passwd   = 'Hito05hito'    # MySQLのパスワード
 dbname   = 'my_database'    # データベース名
 
 #商品管理ページ（初期画面、常にテーブルが表示されるように）
-@app.route('/management')
+@app.route('/management',methods=['GET','POST'])
 def management_send():
 
     drink = []
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
-        query = 'SELECT drink.image, drink.name, drink.price, stock.stock drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id'
+        query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
         for (id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":id, "image":image, "name":name, "price":price, "stock":stock,"status":status}
+            item = {"drink_id":id, "new_img":image, "new_name":name, "new_price":price, "new_stock":stock, "new_status":status}
             drink.append(item)
 
     except mysql.connector.Error as err:
@@ -59,10 +60,19 @@ def management_recieve():
     #初期値
     id = request.form.get("drink_id","")
     name = request.form.get("new_name","")
+    image = request.form.get("new_img","")
     price = request.form.get("new_price","")
     stock = request.form.get("new_stock","")
-    image = request.form.get("new_image","")
     status = request.form.get("new_status","")
+
+    #sqlの状態
+    #insert:追加、update:在庫の更新、change:公開・非公開の変更
+    sql_kind = request.form.get("sql_kind","")
+
+    #imageをバイナリデータに変換
+    image_in = open('image','rb').read()
+    image_bin = io.BytesIO(image_in)
+    image_binary = image_bin.getvalue()
 
     #日時の取得
     date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -77,7 +87,7 @@ def management_recieve():
         cursor = cnx.cursor()
 
         #常にテーブルは表示
-        query = 'SELECT drink.image, drink.name, drink.price, stock.stock drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id'
+        query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         if image == "" or name == "" or price == "" or stock == "" or status == "":
             cursor.execute(query)
@@ -86,13 +96,12 @@ def management_recieve():
         else:
             #テーブルに追加する
             try:
-                sql = "INSERT INTO drink (drink_id, name, image, price, created_date, update_date, status) VALUES({}, {}, {},{},{},{},{})".format(id, name, image, price, date, date, status)
+                sql = "INSERT INTO drink (drink_id, name, image, price, created_date, update_date, status) VALUES({}, '{}', {}, {},'{}','{}',{})".format(id, name, image_binary, price, date, date, status)
                 cursor.execute(sql)
                 #order_id = cursor.lastrowid # insertした値を取得できます。
                 
-                sql = "INSERT INTO stock (drink_id, stock, created_date, update_date) VALUES({}, {}, {},{})".format(id, stock, date, date)
+                sql = "INSERT INTO stock (drink_id, stock, created_date, update_date) VALUES({}, {}, '{}', '{}')".format(id, stock, date, date)
                 cursor.execute(sql)
-
                 cnx.commit()
 
             except mysql.connector.Error as err:
@@ -101,9 +110,11 @@ def management_recieve():
 
             cursor.execute(query)
 
+            #sql_kind == 'insert':
+
         drink = []
         for (id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+            item = {"drink_id":id, "new_img":image, "new_name":name, "new_price":price, "new_stock":stock, "new_status":status}
             drink.append(item)
 
     except mysql.connector.Error as err:
@@ -113,6 +124,7 @@ def management_recieve():
             print("データベースが存在しません。")
         else:
             print(err)
+
     else:
         cnx.close()
     return render_template('management.html', drink=drink, result=result)
