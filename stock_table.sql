@@ -5,3 +5,8 @@ create table stock(
     update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY(drink_id)
 );
+
+/*insert*/
+insert into stock(drink_id, stock) values (1, 10);
+insert into stock(drink_id, stock) values (2, 30);
+insert into stock(drink_id, stock) values (3, 20);
