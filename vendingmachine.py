@@ -31,6 +31,9 @@ dbname   = 'my_database'    # データベース名
 @app.route('/management',methods=['GET','POST'])
 def management_send():
 
+    #日時の取得
+    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     drink = []
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
@@ -38,8 +41,8 @@ def management_send():
         query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
-        for (id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":id, "new_img":image, "new_name":name, "new_price":price, "new_stock":stock, "new_status":status}
+        for (id, image_binary, name, price, stock, status, date) in cursor:
+            item = {"drink_id":id, "image":image_binary, "name":name, "price":price, "stock":stock, "status":status, "date":date}
             drink.append(item)
 
     except mysql.connector.Error as err:
@@ -116,8 +119,8 @@ def management_recieve():
             #sql_kind == 'insert':
 
         drink = []
-        for (id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":id, "new_img":image, "new_name":name, "new_price":price, "new_stock":stock, "new_status":status}
+        for (id, image_binary, name, price, stock, status, date) in cursor:
+            item = {"drink_id":id, "img":image_binary, "name":name, "price":price, "stock":stock, "status":status, "date":date}
             drink.append(item)
 
     except mysql.connector.Error as err:
