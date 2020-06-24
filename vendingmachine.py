@@ -28,7 +28,7 @@ passwd   = 'Hito05hito'    # MySQLのパスワード
 dbname   = 'my_database'    # データベース名
 
 #商品管理ページ（初期画面、常にテーブルが表示されるように）
-@app.route('/management',methods=['GET','POST'])
+@app.route('/management')
 def management_send():
 
     #日時の取得
@@ -75,7 +75,7 @@ def management_recieve():
     #sql_kind = request.form.get("sql_kind","")
 
     #imageをバイナリデータに変換
-    image_in = Image.open('"' + 'image/' + image + '"') #画像があるフォルダのパス
+    image_in = Image.open('image/' + image) #画像があるフォルダのパス
     image_bin = io.BytesIO(image_in)
     image_binary = image_bin.getvalue()
 
