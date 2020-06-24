@@ -60,17 +60,19 @@ def management_recieve():
     #初期値
     id = request.form.get("drink_id","")
     name = request.form.get("new_name","")
-    image = request.form.get("new_img","")
     price = request.form.get("new_price","")
     stock = request.form.get("new_stock","")
     status = request.form.get("new_status","")
 
+    #画像読み込み
+    image = request.form.get("new_img","")
+
     #sqlの状態
     #insert:追加、update:在庫の更新、change:公開・非公開の変更
-    sql_kind = request.form.get("sql_kind","")
+    #sql_kind = request.form.get("sql_kind","")
 
     #imageをバイナリデータに変換
-    image_in = open('image','rb').read()
+    image_in = Image.open('"' + 'image/' + image + '"') #画像があるフォルダのパス
     image_bin = io.BytesIO(image_in)
     image_binary = image_bin.getvalue()
 
@@ -96,12 +98,13 @@ def management_recieve():
         else:
             #テーブルに追加する
             try:
-                sql = "INSERT INTO drink (drink_id, name, image, price, created_date, update_date, status) VALUES({}, '{}', {}, {},'{}','{}',{})".format(id, name, image_binary, price, date, date, status)
-                cursor.execute(sql)
+                sql_drink = "INSERT INTO drink (drink_id, name, image, price, created_date, update_date, status) VALUES({}, '{}', {}, {},'{}','{}',{})".format(id, name, image_binary, price, date, date, status)
+                cursor.execute(sql_drink)
+                cnx.commit()
                 #order_id = cursor.lastrowid # insertした値を取得できます。
                 
-                sql = "INSERT INTO stock (drink_id, stock, created_date, update_date) VALUES({}, {}, '{}', '{}')".format(id, stock, date, date)
-                cursor.execute(sql)
+                sql_stock = "INSERT INTO stock (drink_id, stock, created_date, update_date) VALUES({}, {}, '{}', '{}')".format(id, stock, date, date)
+                cursor.execute(sql_stock)
                 cnx.commit()
 
             except mysql.connector.Error as err:
