@@ -88,8 +88,8 @@ def management_recieve():
     image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename)
     
     #公開・非公開ステータス
-    status_public = 1
-    status_private = 0
+    #status_public = 1
+    #status_private = 0
 
     #完了メッセージ
     success_message = ""
@@ -104,8 +104,6 @@ def management_recieve():
     #insert:追加、update:在庫の更新、change:公開・非公開の変更
     sql_kind = request.form.get("sql_kind","")
 
-    #tryの前に入力項目の確認
-
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
@@ -116,28 +114,6 @@ def management_recieve():
         if image == None or name == "" or price == "" or stock == "" or status == "":
             cursor.execute(query)
             error_message = "いずれかの項目が未入力です。全ての項目を入力してください。" 
-
-            #価格が0以上か確認
-            if re.match('^[0-9]$', price):
-                error_message_price = ""
-            else:
-                error_message_price = "価格は0以上の整数で入力してください。"
-    
-            #在庫数が0以上か確認
-            if re.match('^[0-9]$', price):
-                error_message_stock = ""
-            else:
-                error_message_stock = "在庫数は0以上の整数で入力してください。"
-            
-            #画像の形式を確認
-            #if image and allowed_file(image.filename):
-            #filename = secure_filename(image.filename)
-            #image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename)
-            #img_url = '/drink_image/' + filename
-            #error_message_image = " "
-
-            #else:
-            #    error_message_image = '許可されていないファイル形式です。'
         
         else:
             #sql_kindがinsertの時
@@ -146,19 +122,66 @@ def management_recieve():
             # if文
             # priceの話
             # stockの話
+            if sql_kind == 'insert':
 
-            try:
-                add_drink = "INSERT INTO drink (name, image, price, status) VALUES('{}', '{}', {}, {})".format(name, image, price, status)
-                #drink_id = cursor.lastrowid # insertした値を取得できます。 
-                add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
-                cursor.execute(add_drink)
-                cursor.execute(add_stock)
-                cnx.commit()
-                success_message = "【追加成功】商品が正しく追加されました"
+                try:
+                    add_drink = "INSERT INTO drink (name, image, price, status) VALUES('{}', '{}', {}, {})".format(name, image, price, status)
+                    #drink_id = cursor.lastrowid # insertした値を取得できます。 
+                    add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
+                    cursor.execute(add_drink)
+                    cursor.execute(add_stock)
+                    cnx.commit()
+                    success_message = "【追加成功】商品が正しく追加されました"
 
-            except mysql.connector.Error as err:
-                print(err)
+                except mysql.connector.Error as err:
+                    print(err)
 
+                    error_message_image = '許可されていないファイル形式です。'
+
+                    #価格が0以上か確認
+                    if re.match('^[0-9]$', price):
+                        error_message_price = ""
+                    else:
+                        error_message_price = "価格は0以上の整数で入力してください。"
+    
+                    #在庫数が0以上か確認
+                    if re.match('^[0-9]$', price):
+                        error_message_stock = ""
+                    else:
+                        error_message_stock = "在庫数は0以上の整数で入力してください。"
+                    
+                #必ず実行
+                cursor.execute(query)
+            
+            elif sql_kind == 'update':
+                try:
+                    add_drink = "INSERT INTO drink (name, image, price, status) VALUES('{}', '{}', {}, {})".format(name, image, price, status)
+                    #drink_id = cursor.lastrowid # insertした値を取得できます。 
+                    add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
+                    cursor.execute(add_drink)
+                    cursor.execute(add_stock)
+                    cnx.commit()
+                    success_message = "【追加成功】商品が正しく追加されました"
+
+                except mysql.connector.Error as err:
+                    print(err)
+
+                    error_message_image = '許可されていないファイル形式です。'
+
+                    #価格が0以上か確認
+                    if re.match('^[0-9]$', price):
+                        error_message_price = ""
+                    else:
+                        error_message_price = "価格は0以上の整数で入力してください。"
+    
+                    #在庫数が0以上か確認
+                    if re.match('^[0-9]$', price):
+                        error_message_stock = ""
+                    else:
+                        error_message_stock = "在庫数は0以上の整数で入力してください。"
+            else:    
+                #必ず実行
+                cursor.execute(query)
 
             #必ず実行
             cursor.execute(query)
@@ -168,11 +191,11 @@ def management_recieve():
             item = {"image":image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
 
-        params = {
-            "drink" : drink,
-            "success_message" : success_message
+        #params = {
+        #    "drink" : drink,
+        #    "success_message" : success_message
 
-        }
+        #}
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
