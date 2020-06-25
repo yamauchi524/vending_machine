@@ -49,12 +49,12 @@ def management():
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
 
-        query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
         drink = []
-        for (image, name, price, stock, status) in cursor:
-            item = {"image":image, "name":name, "price":price, "stock":stock, "status":status}
+        for (id, image, name, price, stock, status) in cursor:
+            item = {"drink_id":id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
 
     except mysql.connector.Error as err:
@@ -109,7 +109,7 @@ def management_recieve():
         cursor = cnx.cursor()
 
         #常にテーブルは表示
-        query = 'SELECT drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         if image == None or name == "" or price == "" or stock == "" or status == "":
             cursor.execute(query)
@@ -119,9 +119,8 @@ def management_recieve():
             #sql_kindがinsertの時
             #sql_kindがupdateの時
             #sql_kindがchangeの時
-            # if文
-            # priceの話
-            # stockの話
+
+            #追加
             if sql_kind == 'insert':
 
                 try:
@@ -131,6 +130,7 @@ def management_recieve():
                     cursor.execute(add_drink)
                     cursor.execute(add_stock)
                     cnx.commit()
+
                     success_message = "【追加成功】商品が正しく追加されました"
 
                 except mysql.connector.Error as err:
@@ -153,32 +153,30 @@ def management_recieve():
                 #必ず実行
                 cursor.execute(query)
             
+            #在庫数の更新
             elif sql_kind == 'update':
                 try:
-                    add_drink = "INSERT INTO drink (name, image, price, status) VALUES('{}', '{}', {}, {})".format(name, image, price, status)
+                    update_drink = "UPDATE drink (name, image, price, status) VALUES('{}', '{}', {}, {})".format(name, image, price, status)
                     #drink_id = cursor.lastrowid # insertした値を取得できます。 
-                    add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
-                    cursor.execute(add_drink)
-                    cursor.execute(add_stock)
+                    update_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
+                    cursor.execute(update_drink)
+                    cursor.execute(update_stock)
                     cnx.commit()
-                    success_message = "【追加成功】商品が正しく追加されました"
+
+                    success_message = "【更新成功】在庫数が正しく更新されました"
 
                 except mysql.connector.Error as err:
                     print(err)
 
-                    error_message_image = '許可されていないファイル形式です。'
-
-                    #価格が0以上か確認
-                    if re.match('^[0-9]$', price):
-                        error_message_price = ""
-                    else:
-                        error_message_price = "価格は0以上の整数で入力してください。"
-    
                     #在庫数が0以上か確認
                     if re.match('^[0-9]$', price):
                         error_message_stock = ""
                     else:
                         error_message_stock = "在庫数は0以上の整数で入力してください。"
+
+                #必ず実行
+                cursor.execute(query)
+
             else:    
                 #必ず実行
                 cursor.execute(query)
@@ -187,8 +185,8 @@ def management_recieve():
             cursor.execute(query)
 
         drink = []
-        for (image, name, price, stock, status) in cursor:
-            item = {"image":image, "name":name, "price":price, "stock":stock, "status":status}
+        for (id, image, name, price, stock, status) in cursor:
+            item = {"drink_id":id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
 
         params = {
