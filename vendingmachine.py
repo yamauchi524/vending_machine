@@ -85,7 +85,7 @@ def management_recieve():
     image = request.files["new_img"]
     #画像の保存
     filename = secure_filename(image.filename)
-    image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename)
+    image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
     
     #公開・非公開ステータス
     #status_public = 1
@@ -191,11 +191,11 @@ def management_recieve():
             item = {"image":image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
 
-        #params = {
-        #    "drink" : drink,
-        #    "success_message" : success_message
+        params = {
+            "drink" : drink,
+            "success_message" : success_message
 
-        #}
+        }
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
