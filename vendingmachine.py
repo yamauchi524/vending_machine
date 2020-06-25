@@ -23,7 +23,7 @@ from PIL import Image
 import re
 
 #自分をappという名称でインスタンス化
-app = Flask(__name__)
+app = Flask(__name__, static_folder='drink_image')
 
 #データベースの情報
 host = 'localhost' # データベースのホスト名又はIPアドレス
@@ -136,7 +136,7 @@ def management_recieve():
                 except mysql.connector.Error as err:
                     print(err)
 
-                    error_message_image = '許可されていないファイル形式です。'
+                    error_message_image = "許可されていないファイル形式です。"
 
                     #価格が0以上か確認
                     if re.match('^[0-9]$', price):
@@ -193,8 +193,11 @@ def management_recieve():
 
         params = {
             "drink" : drink,
-            "success_message" : success_message
-
+            "success_message" : success_message,
+            "error_message": error_message,
+            "error_message_image":error_message_image,
+            "error_message_price":error_message_price,
+            "error_message_stock":error_message_stock
         }
 
     except mysql.connector.Error as err:
