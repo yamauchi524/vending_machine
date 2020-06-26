@@ -44,6 +44,7 @@ def allwed_file(filename):
     # OKなら１、だめなら0
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+'''
 #管理者画面（ホーム画面）
 @app.route('/management', methods=['GET'])
 def management_home():
@@ -70,9 +71,9 @@ def management_home():
     else:
         cnx.close()
     return render_template('management.html', drink=drink)
-
+'''
 #管理者画面（追加・更新）
-@app.route('/management',methods=['POST'])
+@app.route('/management',methods=['GET','POST'])
 def management_drink():
 
     #変数の定義
@@ -83,9 +84,6 @@ def management_drink():
     
     #公開か非公開かのステータス
     status = request.form.get("new_status","")
-
-    #変更後の公開ステータス
-    next_status = request.form.get("change_status","")
 
     #完了メッセージ
     success_message = ""
@@ -121,7 +119,7 @@ def management_drink():
                 error_message = "いずれかの項目が未入力です。全ての項目を入力してください。" 
 
             else:
-                
+
                 if image and allwed_file(image.filename):
                     #危険な文字を削除
                     filename = secure_filename(image.filename)
@@ -193,14 +191,18 @@ def management_drink():
 
         #公開・非公開ステータスの変更
         elif sql_kind == 'change':
+
+            #変更後の公開ステータス
+            status = request.form.get("change_status","")
+            
             try:
                 #公開→非公開へ
-                if status == 1:
-                    change_status = "UPDATE drink SET status = {} WHERE drink_id = {}".format(next_status, drink_id)
+                #if status == 1:
+                change_status = "UPDATE drink SET status = {} WHERE drink_id = {}".format(status, drink_id)
 
                 #非公開・公開へ
-                else:
-                    change_status = "UPDATE drink SET status = {} WHERE drink_id = {}".format(next_status, drink_id)
+                #else:
+                #    change_status = "UPDATE drink SET status = {} WHERE drink_id = {}".format(status, drink_id)
 
                 cursor.execute(change_status)
                 cnx.commit()
