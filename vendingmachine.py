@@ -120,6 +120,7 @@ def management_drink():
 
             else:
 
+                #画像の読み込み
                 if image and allwed_file(image.filename):
                     #危険な文字を削除
                     filename = secure_filename(image.filename)
@@ -248,7 +249,13 @@ def management_drink():
 #購入画面
 #@app.route('/purchase',methods=['GET','POST'])
 #def purchase():
-#    return render_template('purchase.html')
+
+    #お釣り
+    #change = ""
+    #支払い
+    #payment = ""
+
+#    return render_template('purchase.html', **params)
 
 #購入結果画面
 #@app.route('/result',methods=['POST'])
