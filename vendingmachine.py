@@ -99,17 +99,6 @@ def management_drink():
     #画像の取得
     #アップロードされていない場合はNone
     image = request.files.get("new_img","")
-
-    if image and allwed_file(image.filename):
-        #危険な文字を削除
-        filename = secure_filename(image.filename)
-        #ファイルの保存
-        image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-        #パスを含めたものをsqlに格納
-        sql_image = './drink_image/' + filename
-
-    else:
-        error_message_image = 'ファイルの形式が違います。「png」「jpeg」形式の画像を選択してください。'
     
     #sqlの状態
     #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
@@ -132,13 +121,26 @@ def management_drink():
                 error_message = "いずれかの項目が未入力です。全ての項目を入力してください。" 
 
             else:
+                
+                if image and allwed_file(image.filename):
+                    #危険な文字を削除
+                    filename = secure_filename(image.filename)
+                    #ファイルの保存
+                    image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+                    #パスを含めたものをsqlに格納
+                    sql_image = './drink_image/' + filename
+    
+                else:
+                    error_message_image = 'ファイルの形式が違います。「png」「jpeg」形式の画像を選択してください。'
+
                 try:
                     add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {})".format(name, sql_image, price, status)
+                    cursor.execute(add_drink)
                     drink_id = cursor.lastrowid # insertした値を取得できます。 
 
                     add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
-                    cursor.execute(add_drink)
                     cursor.execute(add_stock)
+
                     cnx.commit()
 
                     success_message = "【追加成功】商品が追加されました"
@@ -163,6 +165,8 @@ def management_drink():
 
         #在庫数の更新
         elif sql_kind == 'update':
+
+            stock = request.form.get("update_stock","")
 
             try:
                 update_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
