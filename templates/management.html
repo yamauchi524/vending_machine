@@ -10,7 +10,7 @@
         }
 
         table {
-            width: 660px;
+            width: 1000px;
             border-collapse: collapse;
         }
 
@@ -54,15 +54,31 @@
             <div>※アップロード可能なファイル形式は「JPEG」「PNG」のみ</div>
             <div>
                 <select name="new_status">
-                    <option value="0">非公開</option>
                     <option value="1">公開</option>
+                    <option value="0">非公開</option>
                 </select>
             </div>
             <input type="hidden" name="sql_kind" value="insert">
             <div><input type="submit" value="商品追加"></div>
         </form>
-        {% if result %}
-        <p>{{result}}</p>
+        {% if error_message %}
+        <p>{{error_message}}</p>
+        {% endif %}
+
+        {% if error_message_image %}
+        <p>{{error_message_image}}</p>
+        {% endif %}
+
+        {% if error_message_price %}
+        <p>{{error_message_price}}</p>
+        {% endif %}
+
+        {% if error_message_stock %}
+        <p>{{error_message_stock}}</p>
+        {% endif %}
+
+        {% if success_message %}
+        <p>{{success_message}}</p>
         {% endif %}
     </section>
 
@@ -79,26 +95,41 @@
             </tr>
 
             {% for item in drink %}
+            <!--公開のやつと非公開のやつ分ける？色を付けたい-->
             <tr>
 
-                <form method="post">
-                <td>{{ item.image }}</td>
-                <td>{{ item.name }}</td>
-                <td>{{ item.price }}</td>
+                <form method="POST" action="">
+                    <!--画像があるパスを指定-->
+                    <td><img src="{{item.image}}"></td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.price }}</td>
 
-                <!--更新-->
-                <td><input type="text"  class="input_text_width text_align_right" name="update_stock" value="{{item.stock}}"><input type="submit" value="変更">
-                <input type="hidden" name="drink_id" value="{{item.id}}">
-                <input type="hidden" name="sql_kind" value="update"></td>
+                    <!--在庫数更新-->
+                    <td>
+                        <input type="text"  class="input_text_width text_align_right" name="update_stock" value="{{item.stock}}">
+                        <input type="submit" value="変更">
+                        <input type="hidden" name="drink_id" value="{{item.drink_id}}">
+                        <input type="hidden" name="sql_kind" value="update">
+                    </td>
                 </form>
 
-                <!--公開ステータス-->
-                <form>
-                <td><input type="submit" value="公開 → 非公開">
-                <input type="hidden" name="change_status" value="{{item.status}}">
-                <input type="hidden" name="drink_id" value="{{item.id}}">
-                <input type="hidden" name="sql_kind" value="change"></td>
+                <!--公開・非公開ステータス-->
+                <div>
+                <form method="POST">
+                    <td>
+                        {% if item.status == 1 %}
+                        <p>【現在のステータス】公開</p>
+                        <button type="submit" name="change_status" value="0">公開 → 非公開</button>
+                        {% elif item.status == 0 %}
+                        <p>【現在のステータス】非公開</p>
+                        <button type="submit" name="change_status" value="1">非公開 → 公開</button>
+                        {% endif %}
+
+                        <input type="hidden" name="drink_id" value="{{item.drink_id}}">
+                        <input type="hidden" name="sql_kind" value="change">
+                    </td>
                 </form>
+                </div>
 
             </tr>
             {% endfor %}
