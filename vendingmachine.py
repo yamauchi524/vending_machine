@@ -5,7 +5,8 @@
 
 #Flask,テンプレート,リクエスト読み込み
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, url_for
+#ファイル名をチェックする関数
 from werkzeug.utils import secure_filename
 
 #DBを使う
@@ -32,10 +33,16 @@ passwd   = 'Hito05hito'    # MySQLのパスワード
 dbname   = 'my_database'    # データベース名
 
 #アップロード画像の保存場所
-#UPLOAD_FOLDER = '/Users/hyamauchi/Desktop/codecamp_work/vendingmachine/drink_image'
 UPLOAD_FOLDER = './drink_image/'
-#ALLOWED_EXTENSIONS = set(['png','jpeg'])
+#アップロードされる拡張子の制限
+ALLOWED_EXTENSIONS = set(['png','jpeg'])
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+#ファイルの拡張子の確認
+def allwed_file(filename):
+    # .があるかどうかのチェックと、拡張子の確認
+    # OKなら１、だめなら0
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 #管理者画面（ホーム画面）
 @app.route('/management', methods=['GET'])
@@ -73,20 +80,13 @@ def management_drink():
     name = request.form.get("new_name","")
     price = request.form.get("new_price","")
     stock = request.form.get("new_stock","")
+    
+    #公開か非公開かのステータス
     status = request.form.get("new_status","")
 
-    #画像の取得
-    #アップロードされていない場合はNone
-    image = request.files["new_img"]
-    #画像の保存
-    filename = secure_filename(image.filename)
-    image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-    #パスを含めて保存
-    #sql_image = '/drink_image/' + filename
-    
     #変更後の公開ステータス
     next_status = request.form.get("change_status","")
-    
+
     #完了メッセージ
     success_message = ""
 
@@ -94,8 +94,23 @@ def management_drink():
     error_message = ""
     error_message_price = ""
     error_message_stock = ""
-    #error_message_image = ""
+    error_message_image = ""
 
+    #画像の取得
+    #アップロードされていない場合はNone
+    image = request.files.get("new_img","")
+
+    if image and allwed_file(image.filename):
+        #危険な文字を削除
+        filename = secure_filename(image.filename)
+        #ファイルの保存
+        image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+        #パスを含めたものをsqlに格納
+        sql_image = './drink_image/' + filename
+
+    else:
+        error_message_image = 'ファイルの形式が違います。「png」「jpeg」形式の画像を選択してください。'
+    
     #sqlの状態
     #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
     sql_kind = request.form.get("sql_kind","")
@@ -118,7 +133,7 @@ def management_drink():
 
             else:
                 try:
-                    add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {})".format(name, image, price, status)
+                    add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {})".format(name, sql_image, price, status)
                     drink_id = cursor.lastrowid # insertした値を取得できます。 
 
                     add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
@@ -164,10 +179,10 @@ def management_drink():
                 print(err)
     
                 #在庫数が0以上か確認
-                if re.match('^[0-9]$', stock):
-                    error_message_stock = ""
-                else:
-                    error_message_stock = "在庫数は0以上の整数で入力してください。"
+                #if re.match('^[0-9]$', stock):
+                #    error_message_stock = ""
+                #else:
+                error_message_stock = "在庫数は0以上の整数で入力してください。"
                     
             #必ず実行
             cursor.execute(query)
@@ -199,15 +214,15 @@ def management_drink():
             cursor.execute(query)
 
         drink = []
-        for (drink_id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+        for (drink_id, sql_image, name, price, stock, status) in cursor:
+            item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
             drink.append(item)
 
         params = {
             "drink" : drink,
             "success_message" : success_message,
             "error_message": error_message,
-            #"error_message_image":error_message_image,
+            "error_message_image":error_message_image,
             "error_message_price":error_message_price,
             "error_message_stock":error_message_stock
         }
