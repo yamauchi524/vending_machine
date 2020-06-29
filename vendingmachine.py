@@ -296,9 +296,13 @@ def result():
         #購入後は1個減らす
         stock = int(stock) - 1
 
-        #query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+        #在庫数を減らす
         reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
         cursor.execute(reduce_stock)
+
+        #指定ドリンクと購入日時をデータベースへ
+        purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
+        cursor.execute(purchase_date)
         cnx.commit()
 
         #drink = []
