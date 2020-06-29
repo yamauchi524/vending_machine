@@ -249,7 +249,7 @@ def management():
 #購入画面
 @app.route('/purchase', methods=['GET'])
 def purchase():
-    
+
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
@@ -276,11 +276,18 @@ def purchase():
 #購入結果画面
 @app.route('/result',methods=['POST'])
 def result():
-    #購入したドリンクの画像、名前、金額を取得
+    #購入したドリンクのid、画像、名前、金額を取得
+    drink_id = request.form.get("drink_id","")
+    name = request.form.get("name","")
+    image =　request.form.get("image","")
 
+    purchase_price = request.form.get("purchase_price","")
 
-    #お釣りを取得
-    payment = ""
+    #支払い
+    payment = request.form.get("payment","")
+
+    #お釣り
+    change = ""
 
 
     return render_template('result.html')
