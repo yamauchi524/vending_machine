@@ -24,6 +24,10 @@
             text-align: left;
         }
 
+        .image img{
+            width: 200px;
+        }
+
         .text_align_right {
             text-align: right;
         }
@@ -100,7 +104,7 @@
 
                 <form method="POST" action="">
                     <!--画像があるパスを指定-->
-                    <td><img src="{{item.image}}"></td>
+                    <td><div class="image"><img src="{{item.image}}"></div></td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.price }}</td>
 

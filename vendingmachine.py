@@ -74,7 +74,7 @@ def management_home():
 '''
 #管理者画面（追加・更新）
 @app.route('/management',methods=['GET','POST'])
-def management_drink():
+def management():
 
     #変数の定義
     drink_id = request.form.get("drink_id","")
@@ -247,17 +247,44 @@ def management_drink():
     return render_template('management.html', **params)
 
 #購入画面
-#@app.route('/purchase',methods=['GET','POST'])
-#def purchase():
+@app.route('/purchase', methods=['GET'])
+def purchase():
 
-    #お釣り
-    #change = ""
-    #支払い
-    #payment = ""
+    #変数の定義
+    drink_id = request.form.get("drink_id","")
+    name = request.form.get("new_name","")
+    price = request.form.get("new_price","")
+    stock = request.form.get("new_stock","")
 
-#    return render_template('purchase.html', **params)
+    #支払い金額
+    money = request.form.get("money","")
+
+
+
+    try:
+        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        cursor = cnx.cursor()
+
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+        cursor.execute(query)
+
+        drink = []
+        for (drink_id, image, name, price, stock, status) in cursor:
+            item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+            drink.append(item)
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("データベースが存在しません。")
+        else:
+            print(err)
+    else:
+        cnx.close()
+    return render_template('purchase.html',drink=drink)
 
 #購入結果画面
-#@app.route('/result',methods=['POST'])
-#def result():
-#    return render_template('result.html')
+@app.route('/result',methods=['POST'])
+def result():
+    return render_template('result.html')
