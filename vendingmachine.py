@@ -274,24 +274,52 @@ def purchase():
 def result():
     
     #変数の定義
-    #購入したドリンクのid、画像、名前、金額を取得
     drink_id = request.form.get("drink_id","")
     name = request.form.get("name","")
     image = request.form.get("image","")
     price = request.form.get("price","")
+    stock = request.form.get("stock","")
 
-    #支払い
+    #支払い金額
     payment = request.form.get("payment","")
 
     #お釣り
     change = ""
 
-    sql_kind = request.form.get("sql_kind","")
+    try:
+        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        cursor = cnx.cursor()
 
-    #購入後の在庫数
-    new_stock = ""
+        #お釣りの計算
+        change = int(payment) - int(price)
 
-    #お釣りの計算
-    change = int(payment) - int(price)
+        #購入後は1個減らす
+        stock = int(stock) - 1
 
-    return render_template('result.html',image=image,name=name,change=change)
+        #query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+        reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
+        cursor.execute(reduce_stock)
+        cnx.commit()
+
+        #drink = []
+        #for (drink_id, image, name, price, stock, status) in cursor:
+        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+        #    drink.append(item)
+
+        params = {
+            "name" : name,
+            "image":image,
+            "change":change
+        }
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("データベースが存在しません。")
+        else:
+            print(err)
+    else:
+        cnx.close()
+
+    return render_template('result.html',**params)
