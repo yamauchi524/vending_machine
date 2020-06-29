@@ -5,15 +5,11 @@
     <style>
         div.drink{
             display: inline-block;
-            width: 300px;
+            width: 200px;
             height: 300px;
 
             text-align: center;
             
-        }
-
-        .image_size{
-            height: 200px;
         }
 
     </style>
@@ -22,19 +18,24 @@
     <h1>自動販売機</h1>
 
     <form action="result" method="post">
-       <p><label>金額： <input type="text" name="money" value=""></label></p>
+       <p><label>金額： <input type="text" name="payment" value=""></label></p>
+
         {% for item in drink %}
         
             {% if item.status == 1 %}
             <div class="drink">
-                <p class="image_size"><img src="{{item.image}}"></p>
+                <span><img src="{{item.image}}" height="150"></span>
                 <p>{{ item.name }}</p>
                 <p>{{ item.price }}円</p>
+
                 {% if item.stock == 0 %}
                 <p>売り切れ</p>
                 {% else %}
-                <p><input type="radio" name="purchase_price" value="{{item.price}}"></p>
-                <input type="hidden" name="drink_id" value="{{item.drink_id}}">
+                <p><input type="radio" name="drink_id" value="{{item.drink_id}}"></p>
+                <input type="hidden" name="image" value="{{item.image}}">
+                <input type="hidden" name="name" value="{{item.name}}">
+                <input type="hidden" name="price" value="{{item.price}}">
+                <input type="hidden" name="stock" value="{{item.stock}}">
                 {% endif %}
             </div>
             {% endif %}
