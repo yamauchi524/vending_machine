@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>自動販売機結果</title>
+</head>
+<body>
+    <h1>自動販売機結果</h1>
+        {% if change >= 0 %}
+        <p><img src={{image}} height="200"></p>
+        <p>【{{name}}】が買えました！</p>
+        <p>おつりは【{{ change }}】円です</p>
+        {% else %}
+        <p>お金が足りません！</p>
+        {% endif %}
+        <footer><input type="button" onclick="history.back();" value='購入画面へ戻る'></footer>
+</body>
+</html>
