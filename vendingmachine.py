@@ -181,10 +181,6 @@ def management():
             except mysql.connector.Error as err:
                 print(err)
     
-                #在庫数が0以上か確認
-                #if re.match('^[0-9]$', stock):
-                #    error_message_stock = ""
-                #else:
                 error_message_stock = "在庫数は0以上の整数で入力してください。"
                     
             #必ず実行
@@ -276,12 +272,13 @@ def purchase():
 #購入結果画面
 @app.route('/result',methods=['POST'])
 def result():
+    
+    #変数の定義
     #購入したドリンクのid、画像、名前、金額を取得
     drink_id = request.form.get("drink_id","")
     name = request.form.get("name","")
-    image =　request.form.get("image","")
-
-    purchase_price = request.form.get("purchase_price","")
+    image = request.form.get("image","")
+    price = request.form.get("price","")
 
     #支払い
     payment = request.form.get("payment","")
@@ -289,5 +286,12 @@ def result():
     #お釣り
     change = ""
 
+    sql_kind = request.form.get("sql_kind","")
 
-    return render_template('result.html')
+    #購入後の在庫数
+    new_stock = ""
+
+    #お釣りの計算
+    change = int(payment) - int(price)
+
+    return render_template('result.html',image=image,name=name,change=change)
