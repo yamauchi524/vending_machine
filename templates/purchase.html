@@ -1,0 +1,50 @@
+<html lang="ja">
+<head>
+   <meta charset="UTF-8">
+   <title>実習課題2 自動販売機</title>
+    <style>
+        div.drink{
+            display: inline-block;
+            width: 300px;
+            height: 300px;
+
+            text-align: center;
+            
+        }
+
+        .image_size{
+            height: 200px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>自動販売機</h1>
+
+    <form action="result" method="post">
+       <p><label>金額： <input type="text" name="money" value=""></label></p>
+        {% for item in drink %}
+        
+            {% if item.status == 1 %}
+            <div class="drink">
+                <p class="image_size"><img src="{{item.image}}"></p>
+                <p>{{ item.name }}</p>
+                <p>{{ item.price }}円</p>
+                {% if item.stock == 0 %}
+                <p>売り切れ</p>
+                {% else %}
+                <p><input type="radio" name="purchase_price" value="{{item.price}}"></p>
+                <input type="hidden" name="drink_id" value="{{item.drink_id}}">
+                {% endif %}
+            </div>
+            {% endif %}
+        
+        {% endfor %}
+
+        <div id="submit">
+            <p><input type="submit" value="購入する"></p>
+        </div>
+
+    </form>
+</body>
+</html>
