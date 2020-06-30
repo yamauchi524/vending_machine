@@ -283,62 +283,70 @@ def result():
     #支払い金額
     payment = request.form.get("payment","")
 
-    #お釣り
-    #payment - price
+    #お釣り #payment - price
     change = ""
 
     #エラーメッセージ
     error_message_drink = ""
-    error_message_orice = ""
+    error_message_price = ""
 
-        
     #エラーメッセージ
-    if drink_id == "" :
-        error_message = "商品を選択してください。"
+    if drink_id == "" and payment == "":
+        error_message_drink = "商品を選択してください。"
+    
+    elif drink_id == "":
+        error_message_drink = "商品を選択してください。"
 
     elif payment == "":
-        error_message = "お金を投入してください。"
+        error_message_price = "お金を投入してください。"
 
     elif int(payment) < int(price):
-        error_message = "投入金額が足りません。"
+        error_message_price = "投入金額が足りません。"
     
     else:
-        error_message = ""
+        error_message_drink = ""
+        error_message_price = ""
+    
+    #お釣りの計算
+    change = int(payment) - int(price)
 
-        #お釣りの計算
-        change = int(payment) - int(price)
+    try:
+        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        cursor = cnx.cursor()
 
-        try:
-            cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-            cursor = cnx.cursor()
+        #購入後は1個減らす
+        stock = int(stock) - 1
 
-            #購入後は1個減らす
-            stock = int(stock) - 1
+        #在庫数を減らす
+        reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
+        cursor.execute(reduce_stock)
 
-            #在庫数を減らす
-            reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
-            cursor.execute(reduce_stock)
+        #指定ドリンクと購入日時をデータベースへ
+        purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
+        cursor.execute(purchase_date)
+        cnx.commit()
 
-            #指定ドリンクと購入日時をデータベースへ
-            purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
-            cursor.execute(purchase_date)
-            cnx.commit()
+        #buy = []
+        #for (drink_id, image, name, price, stock) in cursor:
+        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock}
+        #    buy.append(item)
 
-            params = {
-                "name" : name,
-                "image":image,
-                "change":change,
-                "error_message":error_message
-            }
+        params = {
+            "image":image,
+            "name":name,
+            "change":change,
+            "error_message_drink":error_message_drink,
+            "error_message_price":error_message_price
+        }
 
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print("ユーザ名かパスワードに問題があります。")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print("データベースが存在しません。")
-            else:
-                print(err)
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("データベースが存在しません。")
         else:
-            cnx.close()
+            print(err)
+    else:
+        cnx.close()
 
     return render_template('result.html',**params)
