@@ -6,12 +6,14 @@
 </head>
 <body>
     <h1>自動販売機結果</h1>
-        {% if change >= 0 %}
-        <p><img src={{image}} height="200"></p>
-        <p>【{{name}}】が買えました！</p>
-        <p>おつりは【{{ change }}】円です</p>
+        {% if error_message_drink %}
+            <p>{{ error_message_drink }}</p>
+        {% elif error_message_price %}
+            <p>{{ error_message_price }}</p>
         {% else %}
-        <p>お金が足りません！</p>
+            <p><img src={{image}} height="200"></p>
+            <p>【{{name}}】が買えました！</p>
+            <p>おつりは【{{ change }}円】です</p>
         {% endif %}
         <footer><input type="button" onclick="history.back();" value='購入画面へ戻る'></footer>
 </body>

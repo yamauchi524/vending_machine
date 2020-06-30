@@ -273,12 +273,13 @@ def purchase():
 @app.route('/result',methods=['POST'])
 def result():
     
-    #購入ドリンクの情報
-    drink_id = request.form.get("drink_id","")
-    name = request.form.get("name","")
-    image = request.form.get("image","")
-    price = request.form.get("price","")
-    stock = request.form.get("stock","")
+    if "purchase" in request.form.keys():
+        #購入ドリンクの情報
+        drink_id = request.form.get("drink_id","")
+        name = request.form.get("name","")
+        image = request.form.get("image","")
+        price = request.form.get("price","")
+        stock = request.form.get("stock","")
 
     #支払い金額
     payment = request.form.get("payment","")
