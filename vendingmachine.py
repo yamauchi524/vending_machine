@@ -306,14 +306,15 @@ def result():
     else:
         error_message_drink = ""
         error_message_price = ""
-    
-    #お釣りの計算
-    change = int(payment) - int(price)
 
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
 
+        #お釣りの計算
+        if payment != "":
+            change = int(payment) - int(price)
+        
         #購入後は1個減らす
         stock = int(stock) - 1
 
@@ -326,10 +327,10 @@ def result():
         cursor.execute(purchase_date)
         cnx.commit()
 
-        #buy = []
+        #drink = []
         #for (drink_id, image, name, price, stock) in cursor:
         #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock}
-        #    buy.append(item)
+        #    drink.append(item)
 
         params = {
             "image":image,
@@ -349,4 +350,5 @@ def result():
     else:
         cnx.close()
 
-    return render_template('result.html',**params)
+    return render_template('result.html',image=image,name=name,change=change,error_message_drink=error_message_drink,error_message_price=error_message_price)
+    #return render_template('result.html', **params)
