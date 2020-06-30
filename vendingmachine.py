@@ -286,6 +286,9 @@ def result():
     #お釣り #payment - price
     change = ""
 
+    #減らしたあとの在庫
+    #new_stock = ""
+
     #エラーメッセージ
     error_message_drink = ""
     error_message_price = ""
@@ -322,23 +325,24 @@ def result():
         reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
         cursor.execute(reduce_stock)
 
-        #指定ドリンクと購入日時をデータベースへ
+        #指定ドリンクと購入日時を記録
         purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
         cursor.execute(purchase_date)
         cnx.commit()
 
-        #drink = []
+        #購入したものを格納する？
+        #buy = []
         #for (drink_id, image, name, price, stock) in cursor:
         #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock}
-        #    drink.append(item)
+        #    buy.append(item)
 
-        params = {
-            "image":image,
-            "name":name,
-            "change":change,
-            "error_message_drink":error_message_drink,
-            "error_message_price":error_message_price
-        }
+        #params = {
+        #    "image":image,
+        #    "name":name,
+        #    "change":change,
+        #    "error_message_drink":error_message_drink,
+        #    "error_message_price":error_message_price
+        #}
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
