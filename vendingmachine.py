@@ -273,7 +273,7 @@ def purchase():
 @app.route('/result',methods=['POST'])
 def result():
     
-    #変数の定義
+    #購入ドリンクの情報
     drink_id = request.form.get("drink_id","")
     name = request.form.get("name","")
     image = request.form.get("image","")
@@ -284,46 +284,61 @@ def result():
     payment = request.form.get("payment","")
 
     #お釣り
+    #payment - price
     change = ""
 
-    try:
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+    #エラーメッセージ
+    error_message_drink = ""
+    error_message_orice = ""
+
+        
+    #エラーメッセージ
+    if drink_id == "" :
+        error_message = "商品を選択してください。"
+
+    elif payment == "":
+        error_message = "お金を投入してください。"
+
+    elif int(payment) < int(price):
+        error_message = "投入金額が足りません。"
+    
+    else:
+        error_message = ""
 
         #お釣りの計算
         change = int(payment) - int(price)
 
-        #購入後は1個減らす
-        stock = int(stock) - 1
+        try:
+            cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+            cursor = cnx.cursor()
 
-        #在庫数を減らす
-        reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
-        cursor.execute(reduce_stock)
+            #購入後は1個減らす
+            stock = int(stock) - 1
 
-        #指定ドリンクと購入日時をデータベースへ
-        purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
-        cursor.execute(purchase_date)
-        cnx.commit()
+            #在庫数を減らす
+            reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
+            cursor.execute(reduce_stock)
 
-        #drink = []
-        #for (drink_id, image, name, price, stock, status) in cursor:
-        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
-        #    drink.append(item)
+            #指定ドリンクと購入日時をデータベースへ
+            purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
+            cursor.execute(purchase_date)
+            cnx.commit()
 
-        params = {
-            "name" : name,
-            "image":image,
-            "change":change
-        }
+            params = {
+                "name" : name,
+                "image":image,
+                "change":change,
+                "error_message":error_message
+            }
 
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("ユーザ名かパスワードに問題があります。")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("データベースが存在しません。")
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("ユーザ名かパスワードに問題があります。")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("データベースが存在しません。")
+            else:
+                print(err)
         else:
-            print(err)
-    else:
-        cnx.close()
+            cnx.close()
 
     return render_template('result.html',**params)
