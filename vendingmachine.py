@@ -345,7 +345,7 @@ def result():
                 #指定ドリンクと購入日時を記録
                 purchase_date = "INSERT INTO purchase(drink_id) VALUES({});".format(drink_id)
                 cursor.execute(purchase_date)
-                
+
                 cnx.commit()
 
         #params={
