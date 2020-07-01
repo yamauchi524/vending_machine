@@ -91,7 +91,6 @@
             </tr>
 
             {% for item in drink %}
-            <!--公開のやつと非公開のやつ分ける？色を付けたい-->
             <tr>
 
                 <form method="POST" action="">
@@ -115,10 +114,10 @@
                     <td>
                         {% if item.status == 1 %}
                         <p>【現在のステータス】公開</p>
-                        <button type="submit" name="change_status" value="0">公開 → 非公開</button>
+                        <button type="submit" name="change_status" value="0">非公開にする</button>
                         {% elif item.status == 0 %}
                         <p>【現在のステータス】非公開</p>
-                        <button type="submit" name="change_status" value="1">非公開 → 公開</button>
+                        <button type="submit" name="change_status" value="1">公開にする</button>
                         {% endif %}
 
                         <input type="hidden" name="drink_id" value="{{item.drink_id}}">
