@@ -337,7 +337,7 @@ def result():
             if buy_stock != 0:
                 #在庫数を減らす
                 new_stock = buy_stock-1
-                print(new_stock)
+                #print(new_stock)
 
                 reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {};".format(new_stock, drink_id)
                 cursor.execute(reduce_stock)
