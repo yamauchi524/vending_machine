@@ -39,11 +39,11 @@
 購入情報を格納するテーブルです。
 
 ## 実行方法
-`python3 -m venv venv`
-`. venv/bin/activate`
+`python3 -m venv venv`<br>
+`. venv/bin/activate`<br><br>
 
-`export FLASK_APP=vendingmachine`
-`export FLASK_ENV=development`
-`flask run`
+`export FLASK_APP=vendingmachine`<br>
+`export FLASK_ENV=development`<br>
+`flask run`<br>
 
 実行後、管理画面 または 購入画面を開いてください。
