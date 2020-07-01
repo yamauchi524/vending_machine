@@ -273,28 +273,33 @@ def purchase():
 @app.route('/result',methods=['POST'])
 def result():
     
+    #購入ボタンが押されたとき
+    #if "purchase" in request.form.keys():
+    #購入ドリンクの情報
+    drink_id = request.form.get("drink_id","")
     #支払い金額
     payment = request.form.get("payment","")
     
     #お釣り
     change = ""
 
-    #在庫数を減らす
+    #新しい在庫数
     new_stock = ""
 
-    #エラーメッセージを出す
+    #購入商品の情報
+    buy_image = ""
+    buy_name = ""
+    buy_price = ""
+    buy_stock = ""
+
+    #エラーメッセージ
     error_message_drink = ""
     error_message_price = ""
-
-    #購入ボタンが押されたとき
-    if "purchase" in request.form.keys():
-        #購入ドリンクの情報
-        drink_id = request.form.get("drink_id","")
 
     #商品のエラーメッセージ
     if drink_id == "" and payment == "":
         error_message_drink = "商品を選択してください。"
-    
+
     elif drink_id == "":
         error_message_drink = "商品を選択してください。"
 
@@ -302,19 +307,21 @@ def result():
         error_message_drink = ""
 
     try:
+        #DBに接続
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
 
-        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {}'.format(drink_id)
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {};'.format(drink_id)
         cursor.execute(query)
 
-        buy = []
         for (drink_id, image, name, price, stock, status) in cursor:
             item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
-            buy.append(item)        
 
-        buy_price = buy[3]
-        buy_stock = buy[4]
+        #購入商品の値を取得
+        buy_image = item["image"]
+        buy_name = item["name"]
+        buy_price = item["price"]
+        buy_stock = item["stock"]
 
         #お金のエラーメッセージ
         if payment == "":
@@ -324,31 +331,30 @@ def result():
             error_message_price = "投入金額が足りません。"
     
         else:
-            error_message_price = ""
-
-        #お釣りの計算
-        if payment != "":
             change = int(payment) - buy_price
-
-        #購入後は在庫を1個減らす
-        if buy_stock != 0:
-            new_stock = buy_stock - 1
+            error_message_price = ""
         
-        #在庫数を減らす
-        reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(new_stock, drink_id)
-        cursor.execute(reduce_stock)
+            if buy_stock != 0:
+                #在庫数を減らす
+                new_stock = buy_stock-1
+                print(new_stock)
 
-        #指定ドリンクと購入日時を記録
-        purchase_date = "INSERT INTO purchase(drink_id) VALUES({})".format(drink_id)
-        cursor.execute(purchase_date)
-        cnx.commit()
+                reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {};".format(new_stock, drink_id)
+                cursor.execute(reduce_stock)
 
-        params={
-            "buy":buy,
-            "change":change,
-            "error_message_drink":error_message_drink,
-            "error_message_price":error_message_price
-        }
+                #指定ドリンクと購入日時を記録
+                purchase_date = "INSERT INTO purchase(drink_id) VALUES({});".format(drink_id)
+                cursor.execute(purchase_date)
+                
+                cnx.commit()
+
+        #params={
+        #    "image":buy_image,
+        #    "name":buy_name,
+        #    "change":change,
+        #    "error_message_drink":error_message_drink,
+        #    "error_message_price":error_message_price
+        #}
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -360,5 +366,5 @@ def result():
     else:
         cnx.close()
 
-    #return render_template('result.html',buy=buy,change=change,error_message_drink=error_message_drink,error_message_price=error_message_price)
-    return render_template('result.html', **params)
+    return render_template('result.html',image=buy_image,name=buy_name,change=change,error_message_drink=error_message_drink,error_message_price=error_message_price)
+    #return render_template('result.html', **params)
