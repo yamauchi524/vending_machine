@@ -10,11 +10,14 @@
             <p>{{ error_message_drink }}</p>
         {% elif error_message_price %}
             <p>{{ error_message_price }}</p>
+
         {% else %}
             <p><img src={{image}} height="200"></p>
             <p>【{{name}}】が買えました！</p>
             <p>おつりは【{{ change }}円】です</p>
         {% endif %}
+
         <footer><input type="button" onclick="history.back();" value='購入画面へ戻る'></footer>
+
 </body>
 </html>
