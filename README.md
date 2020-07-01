@@ -40,7 +40,7 @@
 
 ## 実行方法
 `python3 -m venv venv`<br>
-`. venv/bin/activate`<br><br>
+`. venv/bin/activate`<br>
 
 `export FLASK_APP=vendingmachine`<br>
 `export FLASK_ENV=development`<br>
