@@ -5,7 +5,7 @@
 
 #Flask,テンプレート,リクエスト読み込み
 import os
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request
 #ファイル名をチェックする関数
 from werkzeug.utils import secure_filename
 
@@ -328,7 +328,7 @@ def result():
             error_message_price = "お金を投入してください。"
 
         elif int(payment) < buy_price:
-            error_message_price = "投入金額が足りません。"
+                error_message_price = "投入金額が足りません。"
     
         else:
             change = int(payment) - buy_price
