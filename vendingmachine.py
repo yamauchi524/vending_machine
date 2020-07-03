@@ -5,13 +5,16 @@
 
 #Flask,テンプレート,リクエスト読み込み
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request,redirect
 #ファイル名をチェックする関数
 from werkzeug.utils import secure_filename
 
 #DBを使う
 import mysql.connector
 from mysql.connector import errorcode
+
+#numpyを使う
+import numpy as np
 
 #時間の取得
 #import datetime
@@ -35,11 +38,11 @@ dbname   = 'my_database'    # データベース名
 #アップロード画像の保存場所
 UPLOAD_FOLDER = './drink_image/'
 #アップロードされる拡張子の制限
-ALLOWED_EXTENSIONS = set(['png','jpeg'])
+ALLOWED_EXTENSIONS = set(['png','jpeg','jpg'])
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 #ファイルの拡張子の確認
-def allwed_file(filename):
+def is_allowed_file(filename):
     # .があるかどうかのチェックと、拡張子の確認
     # OKなら１、だめなら0
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -71,7 +74,94 @@ def management_home():
     else:
         cnx.close()
     return render_template('management.html', drink=drink)
+
+###以下修正ファイル
+#insertの関数（返り値2つ）
+def can_insert(image, name, price, stock):
+    if image == "" or name == "" or price == "" or stock == "":
+        return False, "【追加失敗】いずれかの値が未入力です。全ての項目を入力してください。" #エラーメッセージはHTMLが管理する方が良い 1,2,3...とかつけて分岐
+    if :
+        return False, "【追加失敗】在庫数は0以上の整数で入力してください。"
+    if :
+        return False, "【追加失敗】値段は0以上の整数で入力してください。"
+    if image and not (filename[-3:] == "png" and filename[-3:] == "jpg" and filename[-4:] == "jpeg"):
+        return False, "【追加失敗】アップロード画像のファイル形式が違います。"
+    return True, "【追加成功】商品が追加されました。"
+
+#updateの関数
+def can_update_stock(stock):
+    if stock == "" or np.sign(stock) == -1:
+        return False, "【更新失敗】在庫数は0以上の整数で入力してください。"
+    return True, "【更新成功】在庫数が変更されました。"
+
+#changeの関数
+def can_change_status(status):
+    if status == "":
+        return False, "【更新失敗】公開または非公開を選択してください。"
+    return True, "【更新成功】公開ステータスが変更されました。"
+
+#cusor.exrxute(query)はif文の外におく
+#追加、在庫数変更、公開ステータスの変更などは、それぞれ別のURLに対してリクエストを送れるようにするといいですね。  
+
+#管理画面
+def management():
+    #変数の定義
+    drink_id = request.form.get("drink_id","")
+    name = request.form.get("new_name","")
+    price = request.form.get("new_price","")
+    stock = request.form.get("new_stock","")
+    
+    #公開か非公開かのステータス
+    status = request.form.get("new_status","")
+
+    #メッセージのフラグ
+    message = ""
+
+    #画像の取得
+    image = request.files.get("new_img","")
+    
+    #sqlの状態
+    #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
+    sql_kind = request.form.get("sql_kind","")
+
+    try:
+        #DBの読み込み
+        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        cursor = cnx.cursor()
+
+        #常にテーブルは表示
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+
+        #商品の追加
+        if sql_kind == 'insert':
+            can_insert, message = can_insert(image, name, price, stock)
+            if can_insert: #Trueの場合insert
+                add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {})".format(name, sql_image, price, status)
+                cursor.execute(add_drink)
+                drink_id = cursor.lastrowid # insertした値を取得できます。 
+
+                add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
+                cursor.execute(add_stock)
+                cnx.commit()
+
+        if sql_kind == 'update'
+        can_update_stock, message can_update_stock()
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("データベースが存在しません。")
+        else:
+            print(err)
+
+    else:
+        cnx.close()
+    return render_template('management.html', **params)
+
 '''
+
+
 #管理者画面（追加・更新）
 @app.route('/management',methods=['GET','POST'])
 def management():
@@ -95,7 +185,6 @@ def management():
     error_message_image = ""
 
     #画像の取得
-    #アップロードされていない場合はNone
     image = request.files.get("new_img","")
     
     #sqlの状態
@@ -121,9 +210,10 @@ def management():
             else:
 
                 #画像の読み込み
-                if image and allwed_file(image.filename):
+                if image and is_allowed_file(image.filename):
                     #危険な文字を削除
                     filename = secure_filename(image.filename)
+                    print(filename)
                     #ファイルの保存
                     image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
                     #パスを含めたものをsqlに格納
