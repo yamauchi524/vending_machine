@@ -48,9 +48,10 @@ def is_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 '''
+## 以下修正ファイル
 #管理者画面（ホーム画面）
-@app.route('/management', methods=['GET'])
-def management_home():
+@app.route('/index', methods=['GET'])
+def management_index():
 
     try:
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
@@ -75,36 +76,35 @@ def management_home():
         cnx.close()
     return render_template('management.html', drink=drink)
 
-###以下修正ファイル
-#insertの関数（返り値2つ）
+#insert判定
 def can_insert(image, name, price, stock):
     if image == "" or name == "" or price == "" or stock == "":
-        return False, "【追加失敗】いずれかの値が未入力です。全ての項目を入力してください。" #エラーメッセージはHTMLが管理する方が良い 1,2,3...とかつけて分岐
-    if :
-        return False, "【追加失敗】在庫数は0以上の整数で入力してください。"
-    if :
-        return False, "【追加失敗】値段は0以上の整数で入力してください。"
+        return False, 1 #【追加失敗】いずれかの値が未入力です。全ての項目を入力してください。
+    if stock == "" or np.sign(stock) == -1:
+        return False, 2 #【追加失敗】在庫数は0以上の整数で入力してください。
+    if price == "" or np.sign(price) == -1:
+        return False, 3 #【追加失敗】値段は0以上の整数で入力してください。
     if image and not (filename[-3:] == "png" and filename[-3:] == "jpg" and filename[-4:] == "jpeg"):
-        return False, "【追加失敗】アップロード画像のファイル形式が違います。"
-    return True, "【追加成功】商品が追加されました。"
+        return False, 4 #【追加失敗】アップロード画像のファイル形式が違います。
+    return True, 5 #【追加成功】商品が追加されました。
 
-#updateの関数
+#update判定
 def can_update_stock(stock):
     if stock == "" or np.sign(stock) == -1:
-        return False, "【更新失敗】在庫数は0以上の整数で入力してください。"
-    return True, "【更新成功】在庫数が変更されました。"
+        return False, 6 #"【更新失敗】在庫数は0以上の整数で入力してください。"
+    return True, 7  #"【更新成功】在庫数が変更されました。"
 
-#changeの関数
+#change判定
 def can_change_status(status):
     if status == "":
-        return False, "【更新失敗】公開または非公開を選択してください。"
-    return True, "【更新成功】公開ステータスが変更されました。"
+        return False, 8  #"【更新失敗】公開または非公開を選択してください。"
+    return True, 9  #"【更新成功】公開ステータスが変更されました。"
 
 #cusor.exrxute(query)はif文の外におく
-#追加、在庫数変更、公開ステータスの変更などは、それぞれ別のURLに対してリクエストを送れるようにするといいですね。  
+#追加、在庫数変更、公開ステータスの変更などは、それぞれ別のURLに対してリクエストを送れるようにするといいですね。#それぞれactionを指定
 
-#管理画面
-def management():
+@app.route('/insert', methods=['POST'])
+def management_insert():
     #変数の定義
     drink_id = request.form.get("drink_id","")
     name = request.form.get("new_name","")
@@ -114,7 +114,7 @@ def management():
     #公開か非公開かのステータス
     status = request.form.get("new_status","")
 
-    #メッセージのフラグ
+    #メッセージ
     message = ""
 
     #画像の取得
@@ -144,8 +144,154 @@ def management():
                 cursor.execute(add_stock)
                 cnx.commit()
 
-        if sql_kind == 'update'
-        can_update_stock, message can_update_stock()
+        cusor.exrxute(query)
+
+        drink = []
+        for (drink_id, sql_image, name, price, stock, status) in cursor:
+            item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
+            drink.append(item)
+
+        params = {
+            "drink" : drink,
+            "message" : message
+        }
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("データベースが存在しません。")
+        else:
+            print(err)
+
+    else:
+        cnx.close()
+    return render_template('management.html', **params)
+
+@app.route('/update', methods=['POST'])
+def management_update():
+    #変数の定義
+    drink_id = request.form.get("drink_id","")
+    name = request.form.get("new_name","")
+    price = request.form.get("new_price","")
+    stock = request.form.get("new_stock","")
+    
+    #公開か非公開かのステータス
+    status = request.form.get("new_status","")
+
+    #メッセージ
+    message = ""
+
+    #画像の取得
+    image = request.files.get("new_img","")
+    
+    #sqlの状態
+    #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
+    sql_kind = request.form.get("sql_kind","")
+
+    try:
+        #DBの読み込み
+        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        cursor = cnx.cursor()
+
+        #常にテーブルは表示
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+
+        #商品の追加
+        if sql_kind == 'update':
+
+            stock = request.form.get("update_stock","")
+            can_update_stock, message = can_update_stock(stock)
+
+            if can_update_stock: #Trueの場合update
+                update_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
+                #drink_id = cursor.lastrowid # insertした値を取得できます。 
+
+                #add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
+                #cursor.execute(add_drink)
+                cursor.execute(update_stock)
+                cnx.commit()
+
+        cusor.exrxute(query)
+
+        drink = []
+        for (drink_id, sql_image, name, price, stock, status) in cursor:
+            item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
+            drink.append(item)
+
+        params = {
+            "drink" : drink,
+            "message" : message
+        }
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("データベースが存在しません。")
+        else:
+            print(err)
+
+    else:
+        cnx.close()
+    return render_template('management.html', **params)
+
+#ステータス変更
+@app.route('/change', methods=['POST'])
+def management_update():
+    #変数の定義
+    drink_id = request.form.get("drink_id","")
+    name = request.form.get("new_name","")
+    price = request.form.get("new_price","")
+    stock = request.form.get("new_stock","")
+    
+    #公開か非公開かのステータス
+    status = request.form.get("new_status","")
+
+    #メッセージ
+    message = ""
+
+    #画像の取得
+    image = request.files.get("new_img","")
+    
+    #sqlの状態
+    #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
+    sql_kind = request.form.get("sql_kind","")
+
+    try:
+        #DBの読み込み
+        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        cursor = cnx.cursor()
+
+        #常にテーブルは表示
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
+
+        #商品の追加
+        if sql_kind == 'change':
+
+            status = request.form.get("change_status","")
+            can_change_status, message = can_change_status(status)
+            
+            if can_update_stock: #Trueの場合update
+                update_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
+                #drink_id = cursor.lastrowid # insertした値を取得できます。 
+
+                #add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
+                #cursor.execute(add_drink)
+                cursor.execute(update_stock)
+                cnx.commit()
+
+        cusor.exrxute(query)
+
+        drink = []
+        for (drink_id, sql_image, name, price, stock, status) in cursor:
+            item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
+            drink.append(item)
+
+        params = {
+            "drink" : drink,
+            "message" : message
+        }
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
