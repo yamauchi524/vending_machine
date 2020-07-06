@@ -5,7 +5,7 @@
 
 #Flask,テンプレート,リクエスト読み込み
 import os
-from flask import Flask, render_template, request,redirect
+from flask import Flask, render_template, request, redirect, url_for
 #ファイル名をチェックする関数
 from werkzeug.utils import secure_filename
 
@@ -47,8 +47,7 @@ def is_allowed_file(filename):
     # OKなら１、だめなら0
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-'''
-## 以下修正ファイル
+
 #管理者画面（ホーム画面）
 @app.route('/index', methods=['GET'])
 def management_index():
@@ -91,14 +90,14 @@ def can_insert(image, name, price, stock):
 #update判定
 def can_update_stock(stock):
     if stock == "" or np.sign(stock) == -1:
-        return False, 6 #"【更新失敗】在庫数は0以上の整数で入力してください。"
-    return True, 7  #"【更新成功】在庫数が変更されました。"
+        return False, 6 #【更新失敗】在庫数は0以上の整数で入力してください。
+    return True, 7  #【更新成功】在庫数が変更されました。
 
 #change判定
 def can_change_status(status):
     if status == "":
-        return False, 8  #"【更新失敗】公開または非公開を選択してください。"
-    return True, 9  #"【更新成功】公開ステータスが変更されました。"
+        return False, 8  #【更新失敗】公開または非公開を選択してください。
+    return True, 9  #【更新成功】公開ステータスが変更されました。
 
 #cusor.exrxute(query)はif文の外におく
 #追加、在庫数変更、公開ステータスの変更などは、それぞれ別のURLに対してリクエストを送れるようにするといいですね。#それぞれactionを指定
@@ -129,7 +128,7 @@ def management_insert():
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
 
-        #常にテーブルは表示
+        #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         #商品の追加
@@ -143,6 +142,8 @@ def management_insert():
                 add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
                 cursor.execute(add_stock)
                 cnx.commit()
+            else:
+                return redirect(url_for('index'))
 
         cusor.exrxute(query)
 
@@ -166,24 +167,25 @@ def management_insert():
 
     else:
         cnx.close()
-    return render_template('management.html', **params)
+
+    return redirect(url_for('index'))
 
 @app.route('/update', methods=['POST'])
 def management_update():
     #変数の定義
     drink_id = request.form.get("drink_id","")
-    name = request.form.get("new_name","")
-    price = request.form.get("new_price","")
-    stock = request.form.get("new_stock","")
+    #name = request.form.get("new_name","")
+    #price = request.form.get("new_price","")
+    #stock = request.form.get("new_stock","")
     
     #公開か非公開かのステータス
-    status = request.form.get("new_status","")
+    #status = request.form.get("new_status","")
 
     #メッセージ
     message = ""
 
     #画像の取得
-    image = request.files.get("new_img","")
+    #image = request.files.get("new_img","")
     
     #sqlの状態
     #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
@@ -194,7 +196,7 @@ def management_update():
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
 
-        #常にテーブルは表示
+        #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         #商品の追加
@@ -205,10 +207,6 @@ def management_update():
 
             if can_update_stock: #Trueの場合update
                 update_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
-                #drink_id = cursor.lastrowid # insertした値を取得できます。 
-
-                #add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
-                #cursor.execute(add_drink)
                 cursor.execute(update_stock)
                 cnx.commit()
 
@@ -231,19 +229,20 @@ def management_update():
             print("データベースが存在しません。")
         else:
             print(err)
-
+            
     else:
         cnx.close()
-    return render_template('management.html', **params)
+
+    return redirect(url_for('index'))
 
 #ステータス変更
 @app.route('/change', methods=['POST'])
-def management_update():
+def management_change():
     #変数の定義
     drink_id = request.form.get("drink_id","")
-    name = request.form.get("new_name","")
-    price = request.form.get("new_price","")
-    stock = request.form.get("new_stock","")
+    #name = request.form.get("new_name","")
+    #price = request.form.get("new_price","")
+    #stock = request.form.get("new_stock","")
     
     #公開か非公開かのステータス
     status = request.form.get("new_status","")
@@ -252,7 +251,7 @@ def management_update():
     message = ""
 
     #画像の取得
-    image = request.files.get("new_img","")
+    #image = request.files.get("new_img","")
     
     #sqlの状態
     #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
@@ -263,7 +262,7 @@ def management_update():
         cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
         cursor = cnx.cursor()
 
-        #常にテーブルは表示
+        #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         #商品の追加
@@ -272,13 +271,9 @@ def management_update():
             status = request.form.get("change_status","")
             can_change_status, message = can_change_status(status)
             
-            if can_update_stock: #Trueの場合update
-                update_stock = "UPDATE stock SET stock = {} WHERE drink_id = {}".format(stock, drink_id)
-                #drink_id = cursor.lastrowid # insertした値を取得できます。 
-
-                #add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {})".format(drink_id, stock)
-                #cursor.execute(add_drink)
-                cursor.execute(update_stock)
+            if can_change_status: #Trueの場合update
+                change_status = "UPDATE drink SET status = {} WHERE drink_id = {}".format(status, drink_id)
+                cursor.execute(change_status)
                 cnx.commit()
 
         cusor.exrxute(query)
@@ -303,11 +298,9 @@ def management_update():
 
     else:
         cnx.close()
-    return render_template('management.html', **params)
+    return redirect(url_for('index'))
 
 '''
-
-
 #管理者画面（追加・更新）
 @app.route('/management',methods=['GET','POST'])
 def management():
@@ -477,6 +470,7 @@ def management():
     else:
         cnx.close()
     return render_template('management.html', **params)
+'''
 
 #購入画面
 @app.route('/purchase', methods=['GET'])
