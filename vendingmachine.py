@@ -5,7 +5,7 @@
 
 #Flask,テンプレート,リクエスト読み込み
 import os
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, flash
 #ファイル名をチェックする関数
 from werkzeug.utils import secure_filename
 
@@ -28,6 +28,8 @@ from PIL import Image
 
 #自分をappという名称でインスタンス化
 app = Flask(__name__, static_folder='drink_image')
+#フラッシュメッセージ
+#app.config["SECRET_KEY"] = "vendingmachine"
 
 #データベースの情報
 host = 'localhost' # データベースのホスト名又はIPアドレス
@@ -53,9 +55,23 @@ def save_image(image):
     image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
     return filename
 
+#ドリンク情報の取得
+def get_drink_info(cursor):
+    drink = []
+    for (drink_id, sql_image, name, price, stock, status) in cursor:
+        item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
+        drink.append(item)
+    return drink
+
+#DBの操作
+def db_connection():
+    cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+    cursor = cnx.cursor()
+    return cnx, cursor
+
 #insert判定
 def can_insert(image, name, price, stock, filename):
-    if image == "" or name == "" or price == "" or stock == "":
+    if image == "" or name == "" or price == "" or stock == "" or filename == "":
         return False, 1 #【追加失敗】いずれかの値が未入力です。全ての項目を入力してください。
     if stock == "" or np.sign(int(stock)) == -1:
         return False, 2 #【追加失敗】在庫数は0以上の整数で入力してください。
@@ -75,23 +91,31 @@ def can_update(stock):
 def can_change(status):
     if status == "":
         return False, 8  #【更新失敗】公開または非公開を選択してください。
-    return True, 9  #【更新成功】公開ステータスが変更されました。#管理者画面（ホーム画面）
+    return True, 9  #【更新成功】公開ステータスが変更されました。
 
-#ホーム画面
+#購入判定
+#def can_buy(payment, buy_price, buy_stock):
+#
+#
+#
+
+#管理者画面：初期画面
 @app.route('/index', methods=['GET'])
 def management_index():
 
     try:
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
 
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
-        drink = []
-        for (drink_id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
-            drink.append(item)
+        #drink = []
+        #for (drink_id, image, name, price, stock, status) in cursor:
+        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+        #    drink.append(item)
+        drink = get_drink_info(cursor)
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -121,7 +145,6 @@ def management_insert():
 
     #画像の取得
     image = request.files.get("new_img","")
-    filename = save_image(image)
     
     #sqlの状態
     #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
@@ -131,19 +154,20 @@ def management_insert():
 
     try:
         #DBの読み込み
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
 
         #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         #商品の追加
         if sql_kind == 'insert':
+            filename = save_image(image)
             can_insert_drink, message = can_insert(image, name, price, stock, filename)
             
             if can_insert_drink: #Trueの場合insert
                 sql_image = './drink_image/' + filename
-                
                 add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {});".format(name, sql_image, price, status)
                 cursor.execute(add_drink)
                 drink_id = cursor.lastrowid # insertした値を取得 
@@ -157,15 +181,16 @@ def management_insert():
 
         cursor.execute(query)
 
-        drink = []
-        for (drink_id, sql_image, name, price, stock, status) in cursor:
-            item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
-            drink.append(item)
+        #drink = []
+        #for (drink_id, sql_image, name, price, stock, status) in cursor:
+        #    item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
+        #    drink.append(item)
+        #drink = get_drink_info(cursor)
 
-        params = {
-            "drink" : drink,
-            "message" : message
-        }
+        #params = {
+        #    "drink" : drink,
+        #    "message" : message
+        #}
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -197,8 +222,9 @@ def management_update():
 
     try:
         #DBの読み込み
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
 
         #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
@@ -217,16 +243,6 @@ def management_update():
                 return redirect('index')
 
         cursor.execute(query)
-
-        #drink = []
-        #for (drink_id, sql_image, name, price, stock, status) in cursor:
-        #    item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
-        #    drink.append(item)
-
-        #params = {
-        #    "drink" : drink,
-        #    "message" : message
-        #}
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -261,8 +277,9 @@ def management_change():
 
     try:
         #DBの読み込み
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
 
         #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
@@ -282,16 +299,6 @@ def management_change():
 
         cursor.execute(query)
 
-        #drink = []
-        #for (drink_id, sql_image, name, price, stock, status) in cursor:
-        #    item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
-        #    drink.append(item)
-
-        #params = {
-        #    "drink" : drink,
-        #    "message" : message
-        #}
-
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("ユーザ名かパスワードに問題があります。")
@@ -309,16 +316,18 @@ def management_change():
 def purchase():
 
     try:
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
 
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
-        drink = []
-        for (drink_id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
-            drink.append(item)
+        #drink = []
+        #for (drink_id, image, name, price, stock, status) in cursor:
+        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+        #    drink.append(item)
+        drink = get_drink_info(cursor)
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -370,8 +379,9 @@ def result():
 
     try:
         #DBに接続
-        cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        cursor = cnx.cursor()
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
 
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {};'.format(drink_id)
         cursor.execute(query)
