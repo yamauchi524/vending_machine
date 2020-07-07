@@ -70,15 +70,15 @@ def db_connection():
     return cnx, cursor
 
 #insert判定
-def can_insert(image, name, price, stock, filename):
+def can_insert(image, name, price, stock):
     if image == "" or name == "" or price == "" or stock == "" or filename == "":
-        return False, 1 #【追加失敗】いずれかの値が未入力です。全ての項目を入力してください。
+        return False, 1 #【追加失敗】いずれかの項目が未入力です。全ての項目を入力してください。
     if stock == "" or np.sign(int(stock)) == -1:
         return False, 2 #【追加失敗】在庫数は0以上の整数で入力してください。
     if price == "" or np.sign(int(price)) == -1:
         return False, 3 #【追加失敗】値段は0以上の整数で入力してください。
-    if not (filename[-3:] == "png" and filename[-3:] == "jpg" and filename[-4:] == "jpeg"):
-        return False, 4 #【追加失敗】アップロード画像のファイル形式が違います。
+    #if not (filename[-3:] == "png" and filename[-3:] == "jpg" and filename[-4:] == "jpeg"):
+    #    return False, 4 #【追加失敗】アップロード画像のファイル形式が違います。
     return True, 5 #【追加成功】商品が追加されました。
 
 #update判定
@@ -93,28 +93,44 @@ def can_change(status):
         return False, 8  #【更新失敗】公開または非公開を選択してください。
     return True, 9  #【更新成功】公開ステータスが変更されました。
 
+#購入情報の取得
+def buy_drink_info(cursor):
+    for (drink_id, image, name, price, stock, status) in cursor:
+        item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+
+    #購入商品の値を取得
+    buy_image = item["image"]
+    buy_name = item["name"]
+    buy_price = item["price"]
+    buy_stock = item["stock"]
+
+    return buy_image, buy_name, buy_price, buy_stock
+
 #購入判定
-#def can_buy(payment, buy_price, buy_stock):
-#
-#
-#
+def can_buy(drink_id, payment, buy_price):
+    if drink_id == "" and payment == "":
+        return False, 10 #ドリンクを選択してください
+    if drink_id == "":
+        return False, 10 #ドリンクを選択してください
+    if payment == "":
+        return False, 11  #お金を投入してください。
+    if int(payment) < buy_price:
+        return False, 12  #投入金額が足りません
+    return True, ""
+
+#ポップアップ表示
+
 
 #管理者画面：初期画面
 @app.route('/index', methods=['GET'])
 def management_index():
 
     try:
-        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        #cursor = cnx.cursor()
         cnx, cursor = db_connection()
 
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
-        #drink = []
-        #for (drink_id, image, name, price, stock, status) in cursor:
-        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
-        #    drink.append(item)
         drink = get_drink_info(cursor)
 
     except mysql.connector.Error as err:
@@ -163,11 +179,12 @@ def management_insert():
 
         #商品の追加
         if sql_kind == 'insert':
-            filename = save_image(image)
-            can_insert_drink, message = can_insert(image, name, price, stock, filename)
+            can_insert_drink, message = can_insert(image, name, price, stock)
             
             if can_insert_drink: #Trueの場合insert
+                filename = save_image(image)
                 sql_image = './drink_image/' + filename
+
                 add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {});".format(name, sql_image, price, status)
                 cursor.execute(add_drink)
                 drink_id = cursor.lastrowid # insertした値を取得 
@@ -260,19 +277,10 @@ def management_update():
 #ステータス変更
 @app.route('/change', methods=['POST'])
 def management_change():
-    #変数の定義
     drink_id = request.form.get("drink_id","")
-    
-    #公開か非公開かのステータス
     status = request.form.get("new_status","")
-
-    #メッセージ
     message = ""
-
-    #sqlの状態
-    #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
     sql_kind = request.form.get("sql_kind","")
-
     can_change_status = ""
 
     try:
@@ -343,73 +351,35 @@ def purchase():
 #購入結果画面
 @app.route('/result',methods=['POST'])
 def result():
-    
-    #購入ボタンが押されたとき
-    #if "purchase" in request.form.keys():
-    #購入ドリンクの情報
     drink_id = request.form.get("drink_id","")
-    #支払い金額
     payment = request.form.get("payment","")
-    
-    #お釣り
     change = ""
-
-    #新しい在庫数
     new_stock = ""
-
-    #購入商品の情報
     buy_image = ""
     buy_name = ""
     buy_price = ""
     buy_stock = ""
-
-    #エラーメッセージ
-    error_message_drink = ""
-    error_message_price = ""
-
-    #商品のエラーメッセージ
-    if drink_id == "" and payment == "":
-        error_message_drink = "商品を選択してください。"
-
-    elif drink_id == "":
-        error_message_drink = "商品を選択してください。"
-
-    else:
-        error_message_drink = ""
+    message = ""
+    can_buy_drink = ""
 
     try:
-        #DBに接続
-        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        #cursor = cnx.cursor()
         cnx, cursor = db_connection()
 
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {};'.format(drink_id)
         cursor.execute(query)
 
-        for (drink_id, image, name, price, stock, status) in cursor:
-            item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+        #購入ドリンク情報の取得
+        buy_image, buy_name, buy_price, buy_stock = buy_drink_info(cursor)
 
-        #購入商品の値を取得
-        buy_image = item["image"]
-        buy_name = item["name"]
-        buy_price = item["price"]
-        buy_stock = item["stock"]
+        #エラー判定
+        can_buy_drink, message = can_buy(drink_id, payment, buy_price)
 
-        #お金のエラーメッセージ
-        if payment == "":
-            error_message_price = "お金を投入してください。"
-
-        elif int(payment) < buy_price:
-                error_message_price = "投入金額が足りません。"
-    
-        else:
+        if can_buy_drink:
             change = int(payment) - buy_price
-            error_message_price = ""
-        
+
             if buy_stock != 0:
                 #在庫数を減らす
                 new_stock = buy_stock-1
-                #print(new_stock)
 
                 reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {};".format(new_stock, drink_id)
                 cursor.execute(reduce_stock)
@@ -420,13 +390,8 @@ def result():
 
                 cnx.commit()
 
-        #params={
-        #    "image":buy_image,
-        #    "name":buy_name,
-        #    "change":change,
-        #    "error_message_drink":error_message_drink,
-        #    "error_message_price":error_message_price
-        #}
+        else:
+            return render_template("result.html",message=message)
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -438,8 +403,7 @@ def result():
     else:
         cnx.close()
 
-    return render_template('result.html',image=buy_image,name=buy_name,change=change,error_message_drink=error_message_drink,error_message_price=error_message_price)
-    #return render_template('result.html', **params)
+    return render_template('result.html',image=buy_image,name=buy_name,change=change,message=message)
 
 '''
 #編集前
@@ -612,4 +576,104 @@ def management():
     else:
         cnx.close()
     return render_template('management.html', **params)
+
+#購入結果画面
+@app.route('/result',methods=['POST'])
+def result():
+    #購入ドリンクの情報
+    drink_id = request.form.get("drink_id","")
+    #支払い金額
+    payment = request.form.get("payment","")
+    
+    #お釣り
+    change = ""
+
+    #新しい在庫数
+    new_stock = ""
+
+    #購入商品の情報
+    buy_image = ""
+    buy_name = ""
+    buy_price = ""
+    buy_stock = ""
+
+    #エラーメッセージ
+    error_message_drink = ""
+    error_message_price = ""
+
+    #商品のエラーメッセージ
+    if drink_id == "" and payment == "":
+        error_message_drink = "商品を選択してください。"
+
+    elif drink_id == "":
+        error_message_drink = "商品を選択してください。"
+
+    else:
+        error_message_drink = ""
+
+    try:
+        #DBに接続
+        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
+        #cursor = cnx.cursor()
+        cnx, cursor = db_connection()
+
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {};'.format(drink_id)
+        cursor.execute(query)
+
+        for (drink_id, image, name, price, stock, status) in cursor:
+            item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
+
+        #購入商品の値を取得
+        buy_image = item["image"]
+        buy_name = item["name"]
+        buy_price = item["price"]
+        buy_stock = item["stock"]
+
+        #お金のエラーメッセージ
+        if payment == "":
+            error_message_price = "お金を投入してください。"
+
+        elif int(payment) < buy_price:
+                error_message_price = "投入金額が足りません。"
+    
+        else:
+            change = int(payment) - buy_price
+            error_message_price = ""
+        
+            if buy_stock != 0:
+                #在庫数を減らす
+                new_stock = buy_stock-1
+                #print(new_stock)
+
+                reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {};".format(new_stock, drink_id)
+                cursor.execute(reduce_stock)
+
+                #指定ドリンクと購入日時を記録
+                purchase_date = "INSERT INTO purchase(drink_id) VALUES({});".format(drink_id)
+                cursor.execute(purchase_date)
+
+                cnx.commit()
+
+        #params={
+        #    "image":buy_image,
+        #    "name":buy_name,
+        #    "change":change,
+        #    "error_message_drink":error_message_drink,
+        #    "error_message_price":error_message_price
+        #}
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                    print("ユーザ名かパスワードに問題があります。")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                    print("データベースが存在しません。")
+        else:
+            print(err)
+    else:
+        cnx.close()
+
+    return render_template('result.html',image=buy_image,name=buy_name,change=change,error_message_drink=error_message_drink,error_message_price=error_message_price)
+    #return render_template('result.html', **params)
+
+
 '''
