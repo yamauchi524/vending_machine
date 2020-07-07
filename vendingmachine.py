@@ -5,7 +5,7 @@
 
 #Flask,テンプレート,リクエスト読み込み
 import os
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, url_for
 #ファイル名をチェックする関数
 from werkzeug.utils import secure_filename
 
@@ -22,14 +22,8 @@ import numpy as np
 #画像処理
 from PIL import Image
 
-#match関数の利用
-#入力した数字がマッチしているかチェック
-#import re
-
 #自分をappという名称でインスタンス化
 app = Flask(__name__, static_folder='drink_image')
-#フラッシュメッセージ
-#app.config["SECRET_KEY"] = "vendingmachine"
 
 #データベースの情報
 host = 'localhost' # データベースのホスト名又はIPアドレス
@@ -71,27 +65,27 @@ def db_connection():
 
 #insert判定
 def can_insert(image, name, price, stock):
-    if image == "" or name == "" or price == "" or stock == "" or filename == "":
-        return False, 1 #【追加失敗】いずれかの項目が未入力です。全ての項目を入力してください。
+    if image == "" or name == "" or price == "" or stock == "":
+        return False, 1 #"【追加失敗】いずれかの項目が未入力です。全ての項目を入力してください。"
     if stock == "" or np.sign(int(stock)) == -1:
-        return False, 2 #【追加失敗】在庫数は0以上の整数で入力してください。
+        return False, 2 #"【追加失敗】在庫数は0以上の整数で入力してください。"
     if price == "" or np.sign(int(price)) == -1:
-        return False, 3 #【追加失敗】値段は0以上の整数で入力してください。
+        return False, 3 #"【追加失敗】値段は0以上の整数で入力してください。"
     #if not (filename[-3:] == "png" and filename[-3:] == "jpg" and filename[-4:] == "jpeg"):
     #    return False, 4 #【追加失敗】アップロード画像のファイル形式が違います。
-    return True, 5 #【追加成功】商品が追加されました。
+    return True,  5 #"【追加成功】商品が追加されました。"
 
 #update判定
 def can_update(stock):
     if stock == "" or np.sign(int(stock)) == -1:
-        return False, 6 #【更新失敗】在庫数は0以上の整数で入力してください。
-    return True, 7  #【更新成功】在庫数が変更されました。
+        return False, 6 #"【更新失敗】在庫数は0以上の整数で入力してください。"
+    return True, 7 #"【更新成功】在庫数が変更されました。"
 
 #change判定
 def can_change(status):
     if status == "":
-        return False, 8  #【更新失敗】公開または非公開を選択してください。
-    return True, 9  #【更新成功】公開ステータスが変更されました。
+        return False, 8 #"【更新失敗】公開または非公開を選択してください。"
+    return True, 9 #"【更新成功】公開ステータスが変更されました。"
 
 #購入情報の取得
 def buy_drink_info(cursor):
@@ -106,25 +100,27 @@ def buy_drink_info(cursor):
 
     return buy_image, buy_name, buy_price, buy_stock
 
-#購入判定
-def can_buy(drink_id, payment, buy_price):
+#商品選択判定
+def can_select(drink_id, payment):
     if drink_id == "" and payment == "":
         return False, 10 #ドリンクを選択してください
     if drink_id == "":
-        return False, 10 #ドリンクを選択してください
-    if payment == "":
-        return False, 11  #お金を投入してください。
-    if int(payment) < buy_price:
-        return False, 12  #投入金額が足りません
+        return False, 11 #ドリンクを選択してください
     return True, ""
 
-#ポップアップ表示
-
+#購入判定
+def can_payment(payment, buy_price):
+    if payment == "":
+        return False, 12
+    if np.sign(int(payment)) == -1:
+        return False, 13
+    if int(payment) < buy_price:
+        return False, 14
+    return True, ""
 
 #管理者画面：初期画面
 @app.route('/index', methods=['GET'])
 def management_index():
-
     try:
         cnx, cursor = db_connection()
 
@@ -147,34 +143,19 @@ def management_index():
 #追加
 @app.route('/insert', methods=['POST'])
 def management_insert():
-    #変数の定義
     drink_id = request.form.get("drink_id","")
     name = request.form.get("new_name","")
     price = request.form.get("new_price","")
     stock = request.form.get("new_stock","")
-    
-    #公開か非公開かのステータス
     status = request.form.get("new_status","")
-
-    #メッセージ
-    message = ""
-
-    #画像の取得
     image = request.files.get("new_img","")
-    
-    #sqlの状態
-    #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
     sql_kind = request.form.get("sql_kind","")
 
+    message = ""
     can_insert_drink = ""
 
     try:
-        #DBの読み込み
-        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        #cursor = cnx.cursor()
         cnx, cursor = db_connection()
-
-        #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
         #商品の追加
@@ -187,27 +168,17 @@ def management_insert():
 
                 add_drink = "INSERT INTO drink (name, image, price, status) VALUES ('{}', '{}', {}, {});".format(name, sql_image, price, status)
                 cursor.execute(add_drink)
-                drink_id = cursor.lastrowid # insertした値を取得 
+                drink_id = cursor.lastrowid #insertした値を取得 
 
                 add_stock = "INSERT INTO stock (drink_id, stock) VALUES({}, {});".format(drink_id, stock)
                 cursor.execute(add_stock)
                 cnx.commit()
             
             else:
-                return redirect('index')
+                return render_template("management_result.html",message=message)
+                #return redirect('index')
 
         cursor.execute(query)
-
-        #drink = []
-        #for (drink_id, sql_image, name, price, stock, status) in cursor:
-        #    item = {"drink_id":drink_id, "image":sql_image, "name":name, "price":price, "stock":stock, "status":status}
-        #    drink.append(item)
-        #drink = get_drink_info(cursor)
-
-        #params = {
-        #    "drink" : drink,
-        #    "message" : message
-        #}
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -216,39 +187,24 @@ def management_insert():
             print("データベースが存在しません。")
         else:
             print(err)
-
     else:
         cnx.close()
 
-    return redirect('index')
-
+    return render_template("management_result.html",message=message)
+    
 #在庫数の変更
 @app.route('/update', methods=['POST'])
 def management_update():
-    #変数の定義
     drink_id = request.form.get("drink_id","")
-
-    #メッセージ
-    message = ""
-    
-    #sqlの状態
-    #insert:追加、update:在庫数の更新、change:公開・非公開ステータスの変更
     sql_kind = request.form.get("sql_kind","")
-
+    message = ""
     can_update_stock = ""
 
     try:
-        #DBの読み込み
-        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        #cursor = cnx.cursor()
         cnx, cursor = db_connection()
-
-        #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
-        #商品の追加
         if sql_kind == 'update':
-
             stock = request.form.get("update_stock","")
             can_update_stock, message = can_update(stock)
 
@@ -257,7 +213,8 @@ def management_update():
                 cursor.execute(update_stock)
                 cnx.commit()
             else:
-                return redirect('index')
+                return render_template("management_result.html",message=message)
+                #return redirect('index')
 
         cursor.execute(query)
 
@@ -272,7 +229,8 @@ def management_update():
     else:
         cnx.close()
 
-    return redirect('index')
+    return render_template("management_result.html",message=message)
+    #return redirect('index')
 
 #ステータス変更
 @app.route('/change', methods=['POST'])
@@ -284,26 +242,20 @@ def management_change():
     can_change_status = ""
 
     try:
-        #DBの読み込み
-        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        #cursor = cnx.cursor()
         cnx, cursor = db_connection()
-
-        #常に実行
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
 
-        #商品の追加
         if sql_kind == 'change':
-
             status = request.form.get("change_status","")
             can_change_status, message = can_change(status)
             
-            if can_change_status: #Trueの場合update
+            if can_change_status: #Trueの場合change
                 change_status = "UPDATE drink SET status = {} WHERE drink_id = {}".format(status, drink_id)
                 cursor.execute(change_status)
                 cnx.commit()
             else:
-                return redirect('index')
+                return render_template("management_result.html",message=message)
+                #return redirect('index')
 
         cursor.execute(query)
 
@@ -317,24 +269,20 @@ def management_change():
 
     else:
         cnx.close()
-    return redirect('index')
+
+    return render_template("management_result.html",message=message)
+    #return redirect('index')
 
 #購入画面
 @app.route('/purchase', methods=['GET'])
 def purchase():
 
     try:
-        #cnx = mysql.connector.connect(host=host, user=username, password=passwd, database=dbname)
-        #cursor = cnx.cursor()
         cnx, cursor = db_connection()
 
         query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id;'
         cursor.execute(query)
 
-        #drink = []
-        #for (drink_id, image, name, price, stock, status) in cursor:
-        #    item = {"drink_id":drink_id, "image":image, "name":name, "price":price, "stock":stock, "status":status}
-        #    drink.append(item)
         drink = get_drink_info(cursor)
 
     except mysql.connector.Error as err:
@@ -353,6 +301,7 @@ def purchase():
 def result():
     drink_id = request.form.get("drink_id","")
     payment = request.form.get("payment","")
+
     change = ""
     new_stock = ""
     buy_image = ""
@@ -361,33 +310,32 @@ def result():
     buy_stock = ""
     message = ""
     can_buy_drink = ""
+    can_select_drink = ""
+
+    can_select_drink, message = can_select(drink_id, payment)
+    if not can_select_drink:
+        return render_template("result.html",message=message)
 
     try:
         cnx, cursor = db_connection()
-
-        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {};'.format(drink_id)
+        query = 'SELECT drink.drink_id, drink.image, drink.name, drink.price, stock.stock, drink.status FROM drink LEFT JOIN stock ON drink.drink_id = stock.drink_id WHERE drink.drink_id = {}'.format(drink_id)
         cursor.execute(query)
 
-        #購入ドリンク情報の取得
         buy_image, buy_name, buy_price, buy_stock = buy_drink_info(cursor)
+        can_buy_drink, message = can_payment(payment, buy_price)
 
-        #エラー判定
-        can_buy_drink, message = can_buy(drink_id, payment, buy_price)
-
-        if can_buy_drink:
+        if can_buy_drink: #Trueの場合
             change = int(payment) - buy_price
 
             if buy_stock != 0:
                 #在庫数を減らす
                 new_stock = buy_stock-1
-
                 reduce_stock = "UPDATE stock SET stock = {} WHERE drink_id = {};".format(new_stock, drink_id)
                 cursor.execute(reduce_stock)
 
-                #指定ドリンクと購入日時を記録
+                #購入日時
                 purchase_date = "INSERT INTO purchase(drink_id) VALUES({});".format(drink_id)
                 cursor.execute(purchase_date)
-
                 cnx.commit()
 
         else:
