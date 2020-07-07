@@ -11,11 +11,13 @@
         {% elif message == 11 %}
             <p>ドリンクを選択してください。</p>
         {% elif message == 12 %}
-            <p>お金を投入してください。</p>
+            <p>お金を入れてください。</p>
         {% elif message == 13 %}
+            <p>投入金額は0以上の数を入力してください。</p>
+        {% elif message == 14 %}
             <p>投入金額が足りません。</p>
 
-        {% else %}
+        {% elif message == "" %}
             <p><img src={{image}} height="200"></p>
             <p>【{{name}}】が買えました！</p>
             <p>おつりは【{{ change }}円】です</p>
