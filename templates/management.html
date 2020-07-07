@@ -42,7 +42,7 @@
     <h1>自動販売機管理ツール</h1>
     <section>
         <h2>新規商品追加</h2>
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" action="insert">
             <div><label>名前: <input type="text" name="new_name" value=""></label></div>
             <div><label>値段: <input type="text" name="new_price" value=""></label></div>
             <div><label>個数: <input type="text" name="new_stock" value=""></label></div>
@@ -57,24 +57,25 @@
             <input type="hidden" name="sql_kind" value="insert">
             <div><input type="submit" value="商品追加"></div>
         </form>
-        {% if error_message %}
-        <p>{{error_message}}</p>
-        {% endif %}
-
-        {% if error_message_image %}
-        <p>{{error_message_image}}</p>
-        {% endif %}
-
-        {% if error_message_price %}
-        <p>{{error_message_price}}</p>
-        {% endif %}
-
-        {% if error_message_stock %}
-        <p>{{error_message_stock}}</p>
-        {% endif %}
-
-        {% if success_message %}
-        <p>{{success_message}}</p>
+        
+        {% if message == 1 %}
+        <p>【追加失敗】いずれかの値が未入力です。全ての項目を入力してください。</p>
+        {% elif message == 2 %}
+        <p>【追加失敗】在庫数は0以上の整数で入力してください。</p>
+        {% elif message == 3 %}
+        <p>【追加失敗】値段は0以上の整数で入力してください。</p>
+        {% elif message == 4 %}
+        <p>【追加失敗】アップロード画像のファイル形式が違います。</p>
+        {% elif message == 5 %}
+        <p>【追加成功】商品が追加されました。</p>
+        {% elif message == 6 %}
+        <p>【更新失敗】在庫数は0以上の整数で入力してください。</p>
+        {% elif message == 7 %}
+        <p>【更新成功】在庫数が変更されました。</p>
+        {% elif message == 8 %}
+        <p>【更新失敗】公開または非公開を選択してください。</p>
+        {% elif message == 9 %}
+        <p>【更新成功】公開ステータスが変更されました。</p>
         {% endif %}
     </section>
 
@@ -93,7 +94,7 @@
             {% for item in drink %}
             <tr>
 
-                <form method="POST" action="">
+                <form method="POST" action="update">
                     <!--画像があるパスを指定-->
                     <td><div><img src="{{item.image}}" height="150"></div></td>
                     <td>{{ item.name }}</td>
@@ -110,7 +111,7 @@
 
                 <!--公開・非公開ステータス-->
                 <div>
-                <form method="POST">
+                <form method="POST" action="change">
                     <td>
                         {% if item.status == 1 %}
                         <p>【現在のステータス】公開</p>
