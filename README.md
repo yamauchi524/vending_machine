@@ -25,6 +25,8 @@
 ### 全てtemplatesフォルダに格納されています
 - management.html  
 管理ページのHTMLです。
+- management_result.html  
+管理画面の更新結果を表示するHTMLです。
 - purchase.html  
 購入ページのHTMLです。
 - result.html  
@@ -48,3 +50,6 @@ flask run
 ```
 
 実行後、**管理画面** または **購入画面** を開いてください。
+
+## 質問したいこと
+- redirectを使用する際の値の受け渡し  
