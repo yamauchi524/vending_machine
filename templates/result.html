@@ -6,10 +6,14 @@
 </head>
 <body>
     <h1>自動販売機結果</h1>
-        {% if error_message_drink %}
-            <p>{{ error_message_drink }}</p>
-        {% elif error_message_price %}
-            <p>{{ error_message_price }}</p>
+        {% if message == 10 %}
+            <p>ドリンクを選択してください。</p>
+        {% elif message == 11 %}
+            <p>ドリンクを選択してください。</p>
+        {% elif message == 12 %}
+            <p>お金を投入してください。</p>
+        {% elif message == 13 %}
+            <p>投入金額が足りません。</p>
 
         {% else %}
             <p><img src={{image}} height="200"></p>
