@@ -17,7 +17,7 @@
 
 ## 実行ファイル：vendingmachine.py
 ### 自動販売機の基本的な処理は、vendingmachine.pyで行われています。
-- 管理者画面の処理：management()  
+- 管理者画面の処理：management_index(),management_insert(), management_update(), management_change()
 - 購入画面の処理：purchase()  
 - 購入結果画面の処理：result()  
 
@@ -52,4 +52,6 @@ flask run
 実行後、**管理画面** または **購入画面** を開いてください。
 
 ## 質問したいこと
-- redirectを使用する際の値の受け渡し  
+- redirectを使用する際の値の受け渡し
+- まだ関数が長いところがあるが、更に関数を分けることはできるのか
+- mysql.connector.Errorは省略できるのか
