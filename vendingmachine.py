@@ -354,6 +354,55 @@ def result():
     return render_template('result.html',image=buy_image,name=buy_name,change=change,message=message)
 
 '''
+#修正後コメント
+- redirectでの値の受け渡し
+sessionを使えばいい
+redirectを使うときにsessionから値を出せばいい
+
+- 関数名は動詞で！
+
+- 関数化（l.123）
+①DBに接続
+②DBからデータをとる
+③表示
+
+def get_drinks_by_db(cursor):
+    query = 
+    cursor.execute(query)
+
+    return get_drink_info(cursor)
+
+def printError(err):
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("ユーザ名かパスワードに問題があります。")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("データベースが存在しません。")
+    else:
+        print(err)
+
+def register_drink(cursor, cnx, name...):
+    #add_drink =
+    #cursor.execute()
+    #cn
+    dirnk_id = insert_into_drink
+
+    #add_stock
+    #cursor.execute
+    insert_into_stock =
+    cnc.commit()
+
+#indexのところ
+def management_index():
+    cnx, cursor = 
+    drinks = get_drinks_by_db()
+
+#insertのところ
+変数
+frink_id, name, price get_drink_info_by(request)
+
+#fileimage
+sql_imageを返す関数でよくない？
+
 #編集前
 #管理者画面（追加・更新）
 @app.route('/management',methods=['GET','POST'])
